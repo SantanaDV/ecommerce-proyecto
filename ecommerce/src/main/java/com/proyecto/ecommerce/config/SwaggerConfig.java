@@ -31,7 +31,7 @@ public class SwaggerConfig {
                 )
                 .externalDocs(new ExternalDocumentation()
                         .description("Documentación Externa")
-                        .url("https://github.com/tuprojecto/eccomerce-docs")
+                        .url("https://github.com/SantanaDV/ecommerce-proyecto-clase")
                 );
     }
 
