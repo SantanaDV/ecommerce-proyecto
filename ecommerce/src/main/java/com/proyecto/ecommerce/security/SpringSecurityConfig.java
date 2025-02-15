@@ -4,6 +4,8 @@ import com.proyecto.ecommerce.security.filter.JwtAuthenticationFilter;
 import com.proyecto.ecommerce.security.filter.JwtValidationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +50,7 @@ public class SpringSecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
+
         // JWT Filters
         JwtAuthenticationFilter authFilter = new JwtAuthenticationFilter(authenticationManager());
         JwtValidationFilter validationFilter = new JwtValidationFilter(authenticationManager());
@@ -55,25 +58,25 @@ public class SpringSecurityConfig {
         return http
                 .authorizeHttpRequests(authz -> authz
 
-                        // 1) Rutas para registrar usuario y loguearte de forma pública
+                        //  Rutas para registrar usuario y loguearte de forma pública
 
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/register").permitAll()
 
-                        // 2) Rutas públicas para ver la lista o un producto (catálogo)
-                        .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
-
-                        // 3) Rutas para crear, actualizar o eliminar productos => SOLO ADMIN
+                        //  Gestión de productos (solo administradores)
+                        .requestMatchers(HttpMethod.GET, "/api/productos/getProduct/**").hasRole("ADMIN") // Restringe esta ruta
                         .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
 
-                        // 4) Rutas para ver todos los usuarios => SOLO ADMIN
+
+
+                        //  Rutas para ver todos los usuarios => SOLO ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/usuarios").hasRole("ADMIN")              // ver lista completa
-                        .requestMatchers(HttpMethod.POST, "/api/usuarios/register").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/usuarios/{idUsuario}").hasAnyRole("USER","ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/{idUsuario}").hasAnyRole("USER", "ADMIN")
 
-                        // 5) Rutas para crear usuario (POST /api/usuarios)
-
+                        // Rutas para crear usuario
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
 
                         // 6) Rutas para GET un usuario específico =>
@@ -85,7 +88,7 @@ public class SpringSecurityConfig {
                         //    Por ejemplo, un user normal puede crear su pedido,
                         //    un admin podría ver todos los pedidos, etc.
                         .requestMatchers(HttpMethod.POST, "/api/pedidos").hasAnyRole("USER", "ADMIN") // Crear pedido
-                        .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/id/**").hasAnyRole("USER", "ADMIN")//La validacion la controlamos en el controller
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/id/**").hasAnyRole("ADMIN")//La validacion la controlamos en el controller
                         .requestMatchers(HttpMethod.GET, "/api/pedidos").hasRole("ADMIN") // Ver TODOS los pedidos
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/mios").hasAnyRole("USER", "ADMIN") // Ver solo los pedidos propios
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/{username}").hasAnyRole("USER", "ADMIN")//Ver pedidos utilizando consutlas
@@ -96,10 +99,7 @@ public class SpringSecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasAnyRole("USER", "ADMIN") // Borrar
 
 
-                        // 8) Rutas para pedido-producto => Autenticación (ROLE_USER o ROLE_ADMIN).
-                        .requestMatchers("/api/pedido-producto/**").hasAnyRole("USER", "ADMIN")
-
-                        // 9) Cualquier otra ruta requiere autenticación
+                        // 8) Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
                 )
 
@@ -121,6 +121,7 @@ public class SpringSecurityConfig {
                 )
                 .build();
     }
+
     /**
      * Personaliza la respuesta para 401 Unauthorized (cuando el usuario NO está autenticado).
      */
