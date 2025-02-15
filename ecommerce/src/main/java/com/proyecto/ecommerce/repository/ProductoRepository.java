@@ -2,6 +2,7 @@ package com.proyecto.ecommerce.repository;
 
 import com.proyecto.ecommerce.entity.Producto;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -53,7 +54,53 @@ public interface ProductoRepository extends JpaRepository<Producto, Integer> {
      * @return Lista de productos ordenados alfabéticamente por nombre.
      */
     List<Producto> findAllByOrderByNombreAsc();
+    // CONSULTAS JPQL
 
-
+    /**
+     * Verifica si existe un producto con el mismo nombre (sin importar mayúsculas).
+     *
+     * @param nombre Nombre del producto.
+     * @return `true` si existe, `false` en caso contrario.
+     */
     boolean existsByNombreIgnoreCase(String nombre);
+
+    /**
+     * Obtiene la lista de productos más vendidos ordenados de mayor a menor cantidad.
+     *
+     * @return Lista con el nombre del producto y la cantidad vendida.
+     */
+    @Query("SELECT pp.producto.nombre, SUM(pp.cantidad) FROM PedidoProducto pp GROUP BY pp.producto.nombre ORDER BY SUM(pp.cantidad) DESC")
+    List<Object[]> FindProductosMasVendidos();
+
+    /**
+     * Recupera la lista de pedidos con sus productos asociados.
+     *
+     * @return Lista con ID del pedido, nombre de usuario, nombre del producto y cantidad comprada.
+     */
+    @Query("SELECT p.idPedido, p.usuario.username, pr.nombre, pp.cantidad FROM Pedido p JOIN PedidoProducto pp ON p.idPedido = pp.pedido.idPedido JOIN Producto pr ON pp.producto.idProducto = pr.idProducto")
+    List<Object[]> findPedidosConProductos();
+
+
+// CONSULTAS NATIVAS SQL
+
+    /**
+     * Encuentra los productos más vendidos en el último mes.
+     *
+     * @return Lista con el nombre del producto y la cantidad vendida en el último mes.
+     */
+    @Query(value = "SELECT pr.nombre, SUM(pp.cantidad) FROM pedido_producto pp JOIN producto pr ON pp.id_producto = pr.id_producto JOIN pedido p ON pp.id_pedido = p.id_pedido WHERE p.fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) GROUP BY pr.nombre ORDER BY SUM(pp.cantidad) DESC", nativeQuery = true)
+    List<Object[]> findProductosMasVendidosUltimoMes();
+
+    /**
+     * Obtiene los productos más caros que han sido comprados en la tienda.
+     *
+     * @return Lista con el nombre del producto y su precio.
+     */
+    @Query(value = "SELECT pr.nombre, pr.precio FROM pedido_producto pp JOIN producto pr ON pp.id_producto = pr.id_producto ORDER BY pr.precio DESC LIMIT 10", nativeQuery = true)
+    List<Object[]> findProductosMasCarosComprados();
+
+
+
+
+
 }

@@ -21,6 +21,8 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     private final AuthenticationManager authenticationManager;
 
     public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
+        super(authenticationManager);
+        super.setFilterProcessesUrl("/login");
         this.authenticationManager = authenticationManager;
     }
 
@@ -54,9 +56,10 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         Collection<? extends GrantedAuthority> roles = userDetails.getAuthorities();
 
         // Pasar roles y username en el token
-        Claims claims = Jwts.claims().build();
+        Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", new ObjectMapper().writeValueAsString(roles));
         claims.put("username", username);
+
 
         String token = Jwts.builder()
                 .setSubject(username)

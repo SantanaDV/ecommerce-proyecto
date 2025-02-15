@@ -55,6 +55,74 @@ public interface ProductoService {
      */
     boolean existePorNombreIgnoreCase(String nombre);
 
-    List<PedidoProducto> listarPorUsuario (String username);
 
+    /**
+     * Obtiene la lista de productos más vendidos ordenados de mayor a menor cantidad.
+     *
+     * @return Lista con el nombre del producto y la cantidad vendida.
+     */
+    List<Object[]> obtenerProductosMasVendidos();
+
+    /**
+     * Obtiene una lista con los pedidos y sus productos asociados.
+     *
+     * @return Lista de objetos con ID del pedido, nombre del usuario, nombre del producto y cantidad comprada.
+     */
+    List<Object[]> obtenerPedidosConProductos();
+
+    /**
+     * Obtiene la lista de productos más vendidos en el último mes.
+     *
+     * @return Lista con el nombre del producto y la cantidad vendida en el último mes.
+     */
+    List<Object[]> obtenerProductosMasVendidosUltimoMes();
+
+    /**
+     * Obtiene la lista de los 10 productos más caros que han sido comprados en la tienda.
+     *
+     * @return Lista con el nombre del producto y su precio.
+     */
+    List<Object[]> obtenerProductosMasCarosComprados();
+
+
+    /**
+     * Busca productos cuyo nombre contenga una cadena determinada,
+     * ignorando mayúsculas y minúsculas.
+     *
+     * @param nombre Cadena que se busca en el nombre del producto.
+     * @return Lista de productos cuyo nombre contenga la cadena especificada.
+     */
+    List<Producto> buscarProductosPorNombre(String nombre);
+
+    /**
+     * Busca productos dentro de un rango de precio dado.
+     *
+     * @param precioMin Precio mínimo a filtrar.
+     * @param precioMax Precio máximo a filtrar.
+     * @return Lista de productos dentro del rango especificado.
+     */
+    List<Producto> buscarProductosPorRangoDePrecio(Double precioMin, Double precioMax);
+
+
+    /**
+     * Busca productos con stock menor a la cantidad especificada.
+     *
+     * @param stock Límite máximo de stock.
+     * @return Lista de productos con stock menor al valor dado.
+     */
+    List<Producto> buscarProductosPorStockBajo(Integer stock);
+
+    /**
+     * Recupera todos los productos ordenados por su precio de menor a mayor.
+     *
+     * @return Lista de productos ordenados por precio.
+     */
+    List<Producto> listarProductosPorPrecioAscendente();
+
+    /**
+     * Recupera todos los productos ordenados por su nombre en forma ascendente.
+     *
+     * @return Lista de productos ordenados alfabéticamente.
+     */
+    List<Producto> listarProductosPorNombreAscendente();
 }

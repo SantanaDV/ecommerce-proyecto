@@ -1,5 +1,6 @@
 package com.proyecto.ecommerce.service;
 
+import com.proyecto.ecommerce.entity.PedidoProducto;
 import com.proyecto.ecommerce.entity.Producto;
 import com.proyecto.ecommerce.exception.CustomException;
 import com.proyecto.ecommerce.repository.ProductoRepository;
@@ -68,6 +69,27 @@ public class ProductoServiceImpl implements ProductoService {
         return productoRepository.existsByNombreIgnoreCase(nombre);
     }
 
+
+    @Override
+    public List<Object[]> obtenerProductosMasVendidos() {
+        return productoRepository.FindProductosMasVendidos();
+    }
+
+    @Override
+    public List<Object[]> obtenerPedidosConProductos() {
+        return productoRepository.findPedidosConProductos();
+    }
+
+    @Override
+    public List<Object[]> obtenerProductosMasVendidosUltimoMes() {
+        return productoRepository.findProductosMasVendidosUltimoMes();
+    }
+
+    @Override
+    public List<Object[]> obtenerProductosMasCarosComprados() {
+        return productoRepository.findProductosMasCarosComprados();
+    }
+
     /**
      * Verifica que el nombre no exista en la base de datos,
      * lanzando una excepción si está en uso.
@@ -96,4 +118,31 @@ public class ProductoServiceImpl implements ProductoService {
             throw new CustomException("El stock no puede ser nulo ni negativo.");
         }
     }
+
+    @Override
+    public List<Producto> buscarProductosPorNombre(String nombre) {
+        return productoRepository.findByNombreContainingIgnoreCase(nombre);
+    }
+
+    @Override
+    public List<Producto> buscarProductosPorRangoDePrecio(Double precioMin, Double precioMax) {
+        return productoRepository.findByPrecioBetween(precioMin, precioMax);
+    }
+
+    @Override
+    public List<Producto> buscarProductosPorStockBajo(Integer stock) {
+        return productoRepository.findByStockLessThan(stock);
+    }
+
+    @Override
+    public List<Producto> listarProductosPorPrecioAscendente() {
+        return productoRepository.findAllByOrderByPrecioAsc();
+    }
+
+
+    @Override
+    public List<Producto> listarProductosPorNombreAscendente() {
+        return productoRepository.findAllByOrderByNombreAsc();
+    }
+
 }

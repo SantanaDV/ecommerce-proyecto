@@ -1,6 +1,7 @@
 package com.proyecto.ecommerce.controller;
 
 import com.proyecto.ecommerce.entity.Usuario;
+import com.proyecto.ecommerce.exception.CustomException;
 import com.proyecto.ecommerce.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,10 +57,13 @@ public class UsuarioController {
                     .body("El username ya está en uso.");
         }
 
-        Usuario creado = usuarioService.crearUsuario(usuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+        try {
+            Usuario creado = usuarioService.crearUsuario(usuario);
+            return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+        } catch (CustomException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
-
     /**
      * Registra o crea un nuevo usuario de forma pública.
      * Fuerza admin=false para que nadie se dé de alta como administrador.

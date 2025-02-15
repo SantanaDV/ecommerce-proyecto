@@ -3,9 +3,11 @@ package com.proyecto.ecommerce.service;
 import com.proyecto.ecommerce.entity.Role;
 import com.proyecto.ecommerce.entity.Usuario;
 import com.proyecto.ecommerce.exception.CustomException;
+import com.proyecto.ecommerce.repository.PedidoRepository;
 import com.proyecto.ecommerce.repository.RoleRepository;
 import com.proyecto.ecommerce.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,9 @@ public class UsuarioServiceImpl implements  UsuarioService{
     private  UsuarioRepository usuarioRepository;
 
     @Autowired
+    private PedidoRepository pedidoRepository;
+
+    @Autowired
     private  RoleRepository roleRepository;
 
     @Autowired
@@ -37,24 +42,32 @@ public class UsuarioServiceImpl implements  UsuarioService{
             throw new CustomException("El username ya se encuentra en uso");
         }
 
-        // 1. Asignar roles
+        // 1️⃣ Verificar si ya existe un ADMIN en la base de datos
+        boolean hayAdmin = existeAdmin();
+
+        // 2️⃣ Asignar roles
         List<Role> rolesAsignados = new ArrayList<>();
-        // Por defecto, ROLE_USER
         Optional<Role> rolUser = roleRepository.findByName("ROLE_USER");
         rolUser.ifPresent(rolesAsignados::add);
 
-        // Si el usuario viene marcado como admin => ROLE_ADMIN
-        if (usuario.isAdmin()) {
+        // Si NO hay ningún admin, este será el primer ADMIN automáticamente
+        if (!hayAdmin) {
             Optional<Role> rolAdmin = roleRepository.findByName("ROLE_ADMIN");
             rolAdmin.ifPresent(rolesAsignados::add);
+            usuario.setAdmin(true); // Se marca como admin
+        } else {
+            // Si ya hay admins, verificar si el usuario autenticado es ADMIN
+            String usernameAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
+            Usuario usuarioAutenticado = obtenerUsuarioPorUsername(usernameAutenticado);
+
+            if (!usuarioAutenticado.getRoles().stream().anyMatch(rol -> rol.getName().equals("ROLE_ADMIN")) && usuario.isAdmin()) {
+                throw new CustomException("Solo un administrador puede crear otros administradores.");
+            }
         }
 
         usuario.setRoles(rolesAsignados);
+        usuario.setPassword(passwordEncoder.encode(usuario.getPassword())); // Encriptar contraseña
 
-        // 2. Encriptar contraseña antes de guardar
-        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-
-        // 3. Guardar en base de datos
         return usuarioRepository.save(usuario);
     }
 
@@ -89,7 +102,11 @@ public class UsuarioServiceImpl implements  UsuarioService{
     @Override
     public void eliminarUsuario(Integer idUsuario) {
         Usuario existente = obtenerUsuarioPorId(idUsuario);
-        usuarioRepository.delete(existente);
+
+        // Eliminar los pedidos antes de eliminar el usuario
+        pedidoRepository.deletePedidosByUsuario(idUsuario);
+        // Ahora eliminar el usuario
+        usuarioRepository.deleteById(idUsuario);
     }
 
     @Override
@@ -99,7 +116,14 @@ public class UsuarioServiceImpl implements  UsuarioService{
 
     @Override
     public Usuario obtenerUsuarioPorUsername(String username) {
-        return usuarioRepository.findByUsername(username).orElseThrow()-> new CustomException("No se encontro el usuario con el username" +
-                " " +username);
+        return usuarioRepository.findByUsername(username).orElseThrow(()-> new CustomException("No se encontro el usuario con el username" +
+                " " +username));
     }
+
+    @Override
+    public boolean existeAdmin() {
+        return usuarioRepository.existsByRoles_Name("ROLE_ADMIN");
+    }
+
+
 }

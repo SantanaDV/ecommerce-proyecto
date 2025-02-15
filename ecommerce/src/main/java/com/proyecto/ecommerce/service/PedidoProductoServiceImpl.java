@@ -74,7 +74,7 @@ public class PedidoProductoServiceImpl implements PedidoProductoService {
 
     @Override
     public List<PedidoProducto> listarPorUsuario(String username) {
-        return pedidoProductoRepository.findbyUsername(username);
+        return pedidoProductoRepository.findByPedidoUsuarioUsername(username);
     }
 
     /**
@@ -85,5 +85,10 @@ public class PedidoProductoServiceImpl implements PedidoProductoService {
         if (cantidad == null || cantidad <= 0) {
             throw new CustomException("La cantidad debe ser un número mayor que 0.");
         }
+    }
+
+    @Override
+    public List<PedidoProducto> obtenerRelacionPedidoProducto(Integer idPedido, Integer idProducto) {
+        return pedidoProductoRepository.findByPedidoIdPedidoAndProductoIdProducto(idPedido, idProducto);
     }
 }

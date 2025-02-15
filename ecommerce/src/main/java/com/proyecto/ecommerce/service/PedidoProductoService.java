@@ -62,4 +62,14 @@ public interface PedidoProductoService {
 
 
     List<PedidoProducto> listarPorUsuario(String username);
+
+    /**
+     * Obtiene la relación de un producto en un pedido específico.
+     *
+     * @param idPedido ID del pedido.
+     * @param idProducto ID del producto.
+     * @return Lista de registros de PedidoProducto encontrados.
+     */
+    List<PedidoProducto> obtenerRelacionPedidoProducto(Integer idPedido, Integer idProducto);
+
 }

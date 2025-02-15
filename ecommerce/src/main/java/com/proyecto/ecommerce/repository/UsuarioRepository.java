@@ -24,5 +24,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> { //E
     Optional<Usuario> findByUsername(String username);
 
     boolean existsByUsername(@NotBlank(message = "El usuario no puede estar vacío") String username);
-    
+
+    /**
+     * Verifica si hay al menos un usuario con el rol ADMIN.
+     */
+    boolean existsByRoles_Name(String roleName);
 }

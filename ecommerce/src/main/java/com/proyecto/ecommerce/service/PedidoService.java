@@ -44,6 +44,47 @@ public interface PedidoService {
      */
     void eliminarPedido(Integer idPedido);
 
+    /**
+     * Obtiene la lista de pedidos de un usuario en base a su username.
+     *
+     * @param username Nombre de usuario.
+     * @return Lista de pedidos asociados a ese usuario.
+     */
     List<Pedido> listarPedidosPorUsername(String username);
+
+    /**
+     * Recupera todos los pedidos realizados por un usuario específico.
+     *
+     * @param username Nombre de usuario.
+     * @return Lista de pedidos del usuario.
+     */
+    List<Pedido> listarPedidosPorUsuario(String username);
+
+    /**
+     * Obtiene el total gastado por un usuario en todos sus pedidos.
+     *
+     * @param username Nombre de usuario.
+     * @return Total gastado por el usuario.
+     */
+    Double obtenerTotalGastadoPorUsuario(String username);
+
+    /**
+     * Obtiene la cantidad total de productos comprados por cada usuario.
+     * @return Lista de objetos con el username y la cantidad total de productos comprados.
+     */
+    List<Object[]> obtenerCantidadProductosVendidosPorUsuario();
+
+    /**
+     * Obtiene la cantidad total de pedidos realizados por cada usuario.
+     * @return Lista de objetos con el username y la cantidad total de pedidos realizados.
+     */
+    List<Object[]> contarPedidosPorUsuario();
+
+    /**
+     * Obtiene la lista de pedidos realizados por un usuario según su ID.
+     * @param idUsuario el ID del usuario.
+     * @return lista de pedidos del usuario.
+     */
+    List<Pedido> listarPedidosPorIdUsuario(Integer idUsuario);
 
 }

@@ -27,6 +27,9 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     public Pedido crearPedido(Pedido pedido) {
+        if (pedido.getUsuario() == null || pedido.getUsuario().getIdUsuario() == null) {
+            throw new CustomException("El usuario es obligatorio para crear un pedido.");
+        }
         validarFechaYTotal(pedido);
         return pedidoRepository.save(pedido);
     }
@@ -57,13 +60,37 @@ public class PedidoServiceImpl implements PedidoService {
     @Override
     public void eliminarPedido(Integer idPedido) {
         Pedido existente = obtenerPedidoPorId(idPedido);
-        pedidoRepository.delete(existente);
+        // Borrar primero los productos asociados al pedido
+        pedidoRepository.deleteProductosByPedido(idPedido);
+
+        // Luego, eliminar el pedido
+        pedidoRepository.deleteById(idPedido);
     }
 
     @Override
     public List<Pedido> listarPedidosPorUsername(String username) {
         return pedidoRepository.findByUsuarioUsername(username);
     }
+
+    @Override
+    public List<Pedido> listarPedidosPorUsuario(String username) {
+        return pedidoRepository.findByUsuario(username);
+    }
+
+    @Override
+    public Double obtenerTotalGastadoPorUsuario(String username) {
+        List<Object[]> resultado = pedidoRepository.findTotalGastadoPorUsuario(username);
+        if (!resultado.isEmpty()) {
+            return (Double) resultado.get(0)[1]; // Obtiene el total gastado
+        }
+        return 0.0; // Retorna 0 si no tiene pedidos
+    }
+
+    @Override
+    public List<Object[]> obtenerCantidadProductosVendidosPorUsuario() {
+        return pedidoRepository.findCantidadProductosVendidosPorUsuario();
+    }
+
 
     /**
      * Método auxiliar para verificar que la fecha y el total sean válidos.
@@ -81,4 +108,24 @@ public class PedidoServiceImpl implements PedidoService {
             throw new CustomException("El estado del pedido no puede ser nulo ni vacío.");
         }
     }
+
+    /**
+     * Consultamos en la base de datos la cantidad de pedidos por Usuario
+     */
+
+    @Override
+    public List<Object[]> contarPedidosPorUsuario() {
+        return pedidoRepository.CountPedidoPorUsuario();
+    }
+
+    /**
+     * Consultamos en la base de datos para listar pedidos por su id
+     */
+
+    @Override
+    public List<Pedido> listarPedidosPorIdUsuario(Integer idUsuario) {
+        return pedidoRepository.findByUsuarioIdUsuario(idUsuario);
+    }
+
+
 }

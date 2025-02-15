@@ -86,4 +86,104 @@ import java.util.List;
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
             }
         }
+
+        /**
+         * Obtiene la lista de productos más vendidos en la tienda.
+         *
+         * @return Lista con el nombre del producto y la cantidad vendida.
+         */
+        @GetMapping("/mas-vendidos")
+        public ResponseEntity<List<Object[]>> obtenerProductosMasVendidos() {
+            return ResponseEntity.ok(productoService.obtenerProductosMasVendidos());
+        }
+
+        /**
+         * Obtiene una lista de pedidos con sus productos asociados.
+         *
+         * @return Lista con ID del pedido, nombre del usuario, nombre del producto y cantidad comprada.
+         */
+        @GetMapping("/pedidos-productos")
+        public ResponseEntity<List<Object[]>> obtenerPedidosConProductos() {
+            return ResponseEntity.ok(productoService.obtenerPedidosConProductos());
+        }
+
+        /**
+         * Obtiene la lista de productos más vendidos en el último mes.
+         *
+         * @return Lista con el nombre del producto y la cantidad vendida en el último mes.
+         */
+        @GetMapping("/mas-vendidos-ultimo-mes")
+        public ResponseEntity<List<Object[]>> obtenerProductosMasVendidosUltimoMes() {
+            return ResponseEntity.ok(productoService.obtenerProductosMasVendidosUltimoMes());
+        }
+
+        /**
+         * Obtiene la lista de los 10 productos más caros comprados en la tienda.
+         *
+         * @return Lista con el nombre del producto y su precio.
+         */
+        @GetMapping("/mas-caros-comprados")
+        public ResponseEntity<List<Object[]>> obtenerProductosMasCarosComprados() {
+            return ResponseEntity.ok(productoService.obtenerProductosMasCarosComprados());
+        }
+
+        /**
+         * Busca productos cuyo nombre contenga una cadena determinada,
+         * ignorando mayúsculas y minúsculas.
+         *
+         * @param nombre Cadena que se busca en el nombre del producto.
+         * @return Lista de productos cuyo nombre contenga la cadena especificada.
+         */
+        @GetMapping("/buscar")
+        public ResponseEntity<List<Producto>> buscarProductosPorNombre(@RequestParam String nombre) {
+            return ResponseEntity.ok(productoService.buscarProductosPorNombre(nombre));
+        }
+
+        /**
+         * Busca productos dentro de un rango de precio dado.
+         *
+         * @param precioMin Precio mínimo.
+         * @param precioMax Precio máximo.
+         * @return Lista de productos dentro del rango de precio especificado.
+         */
+        @GetMapping("/buscarPorPrecio")
+        public ResponseEntity<List<Producto>> buscarProductosPorRangoDePrecio(
+                @RequestParam Double precioMin,
+                @RequestParam Double precioMax) {
+
+            return ResponseEntity.ok(productoService.buscarProductosPorRangoDePrecio(precioMin, precioMax));
+        }
+
+        /**
+         * Busca productos con stock menor a la cantidad dada.
+         *
+         * @param stock Límite máximo de stock.
+         * @return Lista de productos con stock bajo.
+         */
+        @GetMapping("/buscarPorStock")
+        public ResponseEntity<List<Producto>> buscarProductosPorStockBajo(
+                @RequestParam Integer stock) {
+
+            return ResponseEntity.ok(productoService.buscarProductosPorStockBajo(stock));
+        }
+
+        /**
+         * Recupera todos los productos ordenados por su precio de menor a mayor.
+         *
+         * @return Lista de productos ordenados por precio.
+         */
+        @GetMapping("/ordenarPorPrecio")
+        public ResponseEntity<List<Producto>> listarProductosPorPrecioAscendente() {
+            return ResponseEntity.ok(productoService.listarProductosPorPrecioAscendente());
+        }
+
+        /**
+         * Recupera todos los productos ordenados por su nombre en forma ascendente.
+         *
+         * @return Lista de productos ordenados alfabéticamente.
+         */
+        @GetMapping("/ordenarPorNombre")
+        public ResponseEntity<List<Producto>> listarProductosPorNombreAscendente() {
+            return ResponseEntity.ok(productoService.listarProductosPorNombreAscendente());
+        }
 }

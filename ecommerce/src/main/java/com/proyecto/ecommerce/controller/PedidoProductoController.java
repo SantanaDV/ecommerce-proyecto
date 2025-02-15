@@ -133,4 +133,19 @@ public class PedidoProductoController {
         List<PedidoProducto> lista = pedidoProductoService.listarPorProducto(idProducto);
         return ResponseEntity.ok(lista);
     }
+
+    /**
+     * Obtiene la relación de un producto en un pedido específico.
+     *
+     * @param idPedido ID del pedido.
+     * @param idProducto ID del producto.
+     * @return Lista de registros de PedidoProducto encontrados.
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<List<PedidoProducto>> obtenerRelacionPedidoProducto(
+            @RequestParam Integer idPedido,
+            @RequestParam Integer idProducto) {
+
+        return ResponseEntity.ok(pedidoProductoService.obtenerRelacionPedidoProducto(idPedido, idProducto));
+    }
 }

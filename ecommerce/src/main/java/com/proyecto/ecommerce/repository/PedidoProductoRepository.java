@@ -31,5 +31,12 @@ public interface PedidoProductoRepository extends JpaRepository<PedidoProducto, 
      * @return Lista con los registros que coincidan (generalmente será uno, pero se utiliza lista por flexibilidad).
      */
     List<PedidoProducto> findByPedidoIdPedidoAndProductoIdProducto(Integer idPedido, Integer idProducto);
-    List<PedidoProducto> findbyUsername(String username);
+
+    /**
+     * Obtiene la lista de productos asociados a pedidos realizados por un usuario específico.
+     *
+     * @param username Nombre de usuario que realizó los pedidos.
+     * @return Lista de registros de PedidoProducto relacionados con los pedidos del usuario.
+     */
+    List<PedidoProducto> findByPedidoUsuarioUsername(String username);
 }
