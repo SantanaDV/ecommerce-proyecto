@@ -2,17 +2,27 @@ package com.proyecto.ecommerce.security;
 
 import com.proyecto.ecommerce.security.filter.JwtAuthenticationFilter;
 import com.proyecto.ecommerce.security.filter.JwtValidationFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+
+import java.io.PrintWriter;
+
 @Configuration
 public class SpringSecurityConfig {
 
@@ -46,7 +56,7 @@ public class SpringSecurityConfig {
                 .authorizeHttpRequests(authz -> authz
 
                         // 1) Rutas para registrar usuario y loguearte de forma pública
-                        .requestMatchers(HttpMethod.POST, "/api/usuarios/register").permitAll()
+
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
 
                         // 2) Rutas públicas para ver la lista o un producto (catálogo)
@@ -59,6 +69,7 @@ public class SpringSecurityConfig {
 
                         // 4) Rutas para ver todos los usuarios => SOLO ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/usuarios").hasRole("ADMIN")              // ver lista completa
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/{idUsuario}").hasAnyRole("USER","ADMIN")
 
                         // 5) Rutas para crear usuario (POST /api/usuarios)
@@ -92,6 +103,11 @@ public class SpringSecurityConfig {
                         .anyRequest().authenticated()
                 )
 
+                // Manejo de excepciones de autenticación y autorización
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint()) // Manejo de 401 Unauthorized
+                        .accessDeniedHandler(customAccessDeniedHandler())
+                )// Manejo de 403 Forbidden
                 // Filtros JWT
                 .addFilterBefore(authFilter, JwtValidationFilter.class)
                 .addFilter(validationFilter)
@@ -104,5 +120,32 @@ public class SpringSecurityConfig {
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .build();
+    }
+    /**
+     * Personaliza la respuesta para 401 Unauthorized (cuando el usuario NO está autenticado).
+     */
+    @Bean
+    public AuthenticationEntryPoint customAuthenticationEntryPoint() {
+        return (HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) -> {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType("application/json");
+            PrintWriter writer = response.getWriter();
+            writer.write("{\"error\": \"No estás autenticado. Por favor, inicia sesión.\"}");
+            writer.flush();
+        };
+    }
+
+    /**
+     * Personaliza la respuesta para 403 Forbidden (cuando el usuario no tiene permisos).
+     */
+    @Bean
+    public AccessDeniedHandler customAccessDeniedHandler() {
+        return (HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) -> {
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            response.setContentType("application/json");
+            PrintWriter writer = response.getWriter();
+            writer.write("{\"error\": \"Acceso denegado: No tienes permisos para realizar esta acción.\"}");
+            writer.flush();
+        };
     }
 }

@@ -57,16 +57,17 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
         // Pasar roles y username en el token
         Map<String, Object> claims = new HashMap<>();
-        claims.put("authorities", new ObjectMapper().writeValueAsString(roles));
+        claims.put("authorities", roles.stream().map(GrantedAuthority::getAuthority).toList());
         claims.put("username", username);
 
 
         String token = Jwts.builder()
                 .setSubject(username)
-                .setClaims(claims)
+                .addClaims(claims)  // ✅ Usa addClaims() en lugar de setClaims()
                 .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hora
                 .signWith(SECRET_KEY)
                 .compact();
+
 
         response.addHeader(HEADER_AUTHORIZATION, PREFIX_TOKEN + token);
 

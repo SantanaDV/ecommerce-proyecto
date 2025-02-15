@@ -50,7 +50,7 @@ public class Usuario {
     @Column
     private String direccion;
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "usuarios_roles",
             joinColumns = @JoinColumn(name = "usuario_id"),
@@ -68,5 +68,15 @@ public class Usuario {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private boolean admin;
 
+
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("usuario")
+    private List<Pedido> pedidos;
+
+    //  Método para limpiar las relaciones ANTES de eliminar el usuario
+    @PreRemove
+    private void removeRoles() {
+        this.roles.clear();
+    }
 
 }

@@ -1,20 +1,26 @@
 package com.proyecto.ecommerce.security.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.proyecto.ecommerce.security.SimpleGrantedAuthorityJsonCreator;
-import io.jsonwebtoken.*;
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.*;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.jackson2.SimpleGrantedAuthorityMixin;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.proyecto.ecommerce.security.TokenJwtConfig.*;
 
@@ -35,35 +41,35 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
             chain.doFilter(request, response);
             return;
         }
+
         String token = header.replace(PREFIX_TOKEN, "").trim();
         try {
-            Claims claims = Jwts.parser()
+            Jws<Claims> jwsClaims = Jwts.parser()
                     .verifyWith(SECRET_KEY).build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+                    .parseSignedClaims(token);
 
+            Claims claims = jwsClaims.getPayload();
             String username = claims.getSubject();
-            Object authoritiesClaims = claims.get("authorities");
 
-            if (username != null && authoritiesClaims != null) {
-                // Convertir JSON de roles a Collection<GrantedAuthority>
-                Collection<? extends GrantedAuthority> authorities =
-                        Arrays.asList(new ObjectMapper()
-                                .addMixIn(SimpleGrantedAuthority.class, SimpleGrantedAuthorityJsonCreator.class)
-                                .readValue(authoritiesClaims.toString().getBytes(),
-                                        SimpleGrantedAuthority[].class));
+            // Extraer la lista de roles correctamente desde los claims
+            List<String> roles = claims.get("authorities", List.class);
+            //  Convertir los roles a Collection<GrantedAuthority>
+            Collection<GrantedAuthority> authorities = roles.stream()
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
 
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+            //  Autenticamos el usuario con los roles correctos
+            SecurityContextHolder.getContext().setAuthentication(
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                            username, null, authorities));
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
             chain.doFilter(request, response);
 
         } catch (JwtException e) {
-            Map<String, String> body = new HashMap<>();
-            body.put("error", e.getMessage());
-            body.put("message", "El token JWT no es válido");
+            Map<String, String> body = Map.of(
+                    "error", e.getMessage(),
+                    "message", "El token JWT no es válido"
+            );
             response.getWriter().write(new ObjectMapper().writeValueAsString(body));
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType(CONTENT_TYPE);

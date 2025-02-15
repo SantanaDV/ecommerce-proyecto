@@ -7,6 +7,7 @@ import com.proyecto.ecommerce.repository.PedidoRepository;
 import com.proyecto.ecommerce.repository.RoleRepository;
 import com.proyecto.ecommerce.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,39 +38,59 @@ public class UsuarioServiceImpl implements  UsuarioService{
 
     @Override
     public Usuario crearUsuario(Usuario usuario) {
-        // Verificar si el username ya está en uso
+        // 1️⃣ Verificar si el username ya está en uso
         if (usuarioRepository.findByUsername(usuario.getUsername()).isPresent()) {
-            throw new CustomException("El username ya se encuentra en uso");
+            throw new CustomException("❌ El username ya se encuentra en uso.");
         }
 
-        // 1️⃣ Verificar si ya existe un ADMIN en la base de datos
+        // 2️⃣ Verificar si ya existe un ADMIN en la base de datos
         boolean hayAdmin = existeAdmin();
 
-        // 2️⃣ Asignar roles
+        // 3️⃣ Asignar roles por defecto (ROLE_USER)
         List<Role> rolesAsignados = new ArrayList<>();
         Optional<Role> rolUser = roleRepository.findByName("ROLE_USER");
         rolUser.ifPresent(rolesAsignados::add);
 
-        // Si NO hay ningún admin, este será el primer ADMIN automáticamente
+        // 4️⃣ Verificar si el usuario autenticado tiene permisos
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean esAnonimo = (authentication == null || !authentication.isAuthenticated() || authentication.getName().equals("anonymousUser"));
+
+        // 5️⃣ Si NO hay administradores, el primer usuario será ADMIN
         if (!hayAdmin) {
             Optional<Role> rolAdmin = roleRepository.findByName("ROLE_ADMIN");
             rolAdmin.ifPresent(rolesAsignados::add);
             usuario.setAdmin(true); // Se marca como admin
         } else {
-            // Si ya hay admins, verificar si el usuario autenticado es ADMIN
-            String usernameAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
+            // 6️⃣ Si ya hay admins, verificar si el usuario autenticado puede crear admins
+            if (esAnonimo) {
+                usuario.setAdmin(false);  // ❌ Asegurar que el usuario anónimo no pueda ser admin
+                throw new CustomException("❌ No tienes permisos para crear administradores.");
+            }
+
+            String usernameAutenticado = authentication.getName();
             Usuario usuarioAutenticado = obtenerUsuarioPorUsername(usernameAutenticado);
 
-            if (!usuarioAutenticado.getRoles().stream().anyMatch(rol -> rol.getName().equals("ROLE_ADMIN")) && usuario.isAdmin()) {
-                throw new CustomException("Solo un administrador puede crear otros administradores.");
+            // 7️⃣ Si el usuario autenticado NO es admin y trata de crear un admin, rechazarlo
+            boolean esAdmin = usuarioAutenticado.getRoles().stream().anyMatch(rol -> rol.getName().equals("ROLE_ADMIN"));
+            if (!esAdmin && usuario.isAdmin()) {
+                usuario.setAdmin(false);  // ❌ Forzar que el usuario no tenga permisos de admin
+                throw new CustomException("❌ Solo un administrador puede crear otros administradores.");
             }
         }
 
+        // 8️⃣ 📌 FORZAR ELIMINACIÓN DEL ADMIN SI EL USUARIO NO TIENE PERMISOS
+        if (!usuario.isAdmin()) {
+            usuario.setAdmin(false);
+        }
+
+        // 9️⃣ Asignar los roles verificados y encriptar la contraseña
         usuario.setRoles(rolesAsignados);
-        usuario.setPassword(passwordEncoder.encode(usuario.getPassword())); // Encriptar contraseña
+        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
 
         return usuarioRepository.save(usuario);
     }
+
+
 
     @Override
     public List<Usuario> listarUsuarios() {
@@ -101,12 +122,14 @@ public class UsuarioServiceImpl implements  UsuarioService{
 
     @Override
     public void eliminarUsuario(Integer idUsuario) {
-        Usuario existente = obtenerUsuarioPorId(idUsuario);
+        Usuario usuario = obtenerUsuarioPorId(idUsuario);
 
-        // Eliminar los pedidos antes de eliminar el usuario
-        pedidoRepository.deletePedidosByUsuario(idUsuario);
-        // Ahora eliminar el usuario
-        usuarioRepository.deleteById(idUsuario);
+        // 🔥 Primero, eliminar manualmente los pedidos asociados
+        usuario.getPedidos().clear();
+        usuarioRepository.save(usuario);  // Guardar el cambio antes de eliminar
+
+        // 🔥 Se ejecutará `@PreRemove` automáticamente antes de la eliminación
+        usuarioRepository.delete(usuario);
     }
 
     @Override

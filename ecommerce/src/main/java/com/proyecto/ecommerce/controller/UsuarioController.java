@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -100,6 +101,11 @@ public class UsuarioController {
     @GetMapping("/{idUsuario}")
     public ResponseEntity<?> obtenerUsuario(@PathVariable Integer idUsuario) {
         try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+                throw new CustomException("Debes estar autenticado para ver perfiles de usuario.");
+            }
+
             // 1) Obtener al user logueado
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             boolean esAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
@@ -108,11 +114,16 @@ public class UsuarioController {
             // 2) Obtener el usuario que se desea ver
             Usuario usuarioBuscado = usuarioService.obtenerUsuarioPorId(idUsuario);
 
+
+            if (usuarioBuscado == null) {
+                throw new CustomException("El usuario con ID " + idUsuario + " no existe.");
+            }
+
             // 3) Verificar:
             //    a) Si es admin => OK
             //    b) Si no es admin => verificar que "usuarioBuscado.getUsername() == username"
             if (!esAdmin && !usuarioBuscado.getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("No puedes ver el perfil de otro usuario");
+                throw new CustomException("No puedes ver el perfil de otro usuario.");
             }
 
             return ResponseEntity.ok(usuarioBuscado);

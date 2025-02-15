@@ -1,5 +1,6 @@
 package com.proyecto.ecommerce.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,7 @@ public class Pedido {
     //Relacion: Muchos pedidos pertenencen a un único usuario (cliente)
     @ManyToOne
     @JoinColumn(name="id_usuario", nullable = false)
+    @JsonIgnoreProperties("pedidos")
     private Usuario usuario;
 
     //Relación: Un pedido puede tener varios registros de PedidoProducto
