@@ -87,4 +87,15 @@ public interface PedidoService {
      */
     List<Pedido> listarPedidosPorIdUsuario(Integer idUsuario);
 
+    /**
+     * Elimina todos los pedidos de un usuario específico.
+     *
+     * @param idUsuario ID del usuario cuyos pedidos serán eliminados.
+     */
+    void eliminarPedidosDeUsuario(Integer idUsuario);
+
+
+    void eliminarProductosDePedido(Integer idPedido);
+
+
 }

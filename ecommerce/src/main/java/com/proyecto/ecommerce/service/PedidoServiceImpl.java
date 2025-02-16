@@ -2,10 +2,12 @@ package com.proyecto.ecommerce.service;
 
 import com.proyecto.ecommerce.entity.Pedido;
 import com.proyecto.ecommerce.exception.CustomException;
+import com.proyecto.ecommerce.repository.PedidoProductoRepository;
 import com.proyecto.ecommerce.repository.PedidoRepository;
 import com.proyecto.ecommerce.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -18,7 +20,10 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Autowired
     private PedidoRepository pedidoRepository;
-    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private PedidoProductoRepository pedidoProductoRepository;
+
 
     @Override
     public List<Pedido> listarPedidos() {
@@ -60,7 +65,7 @@ public class PedidoServiceImpl implements PedidoService {
     @Override
     public void eliminarPedido(Integer idPedido) {
         Pedido existente = obtenerPedidoPorId(idPedido);
-        // 🔥 Eliminar manualmente la relación con PedidoProducto antes de eliminar el pedido
+        //  Eliminar manualmente la relación con PedidoProducto antes de eliminar el pedido
         existente.getPedidoProductos().clear();
         pedidoRepository.save(existente);
 
@@ -128,5 +133,41 @@ public class PedidoServiceImpl implements PedidoService {
         return pedidoRepository.findByUsuarioIdUsuario(idUsuario);
     }
 
+    /**
+     * Elimina todos los pedidos de un usuario y sus productos relacionados.
+     * Se ejecuta dentro de una transacción para asegurar la consistencia.
+     */
+    @Transactional
+    @Override
+    public void eliminarPedidosDeUsuario(Integer idUsuario) {
+        // Buscar los pedidos del usuario
+        List<Pedido> pedidos = pedidoRepository.findByUsuarioIdUsuario(idUsuario);
+
+        if (pedidos.isEmpty()) {
+            throw new CustomException("El usuario con ID " + idUsuario + " no tiene pedidos.");
+        }
+
+        // Primero, eliminar los productos asociados a cada pedido antes de eliminar los pedidos
+        for (Pedido pedido : pedidos) {
+            pedidoProductoRepository.deleteProductosByPedido(pedido.getIdPedido());
+        }
+
+        // Ahora, eliminar los pedidos
+        pedidoRepository.deletePedidosByUsuario(idUsuario);
+    }
+
+    @Override
+    @Transactional
+    public void eliminarProductosDePedido(Integer idPedido) {
+        // Verificamos si el pedido existe
+        Pedido pedido = obtenerPedidoPorId(idPedido);
+
+        if (pedido == null) {
+            throw new CustomException("No se encontró un pedido con ID: " + idPedido);
+        }
+
+        // Eliminamos los productos asociados al pedido
+        pedidoRepository.deleteProductosByPedido(idPedido);
+    }
 
 }

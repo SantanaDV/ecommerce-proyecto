@@ -292,6 +292,49 @@ public class PedidoController {
         System.out.println("No se encontró usuario autenticado en SecurityContextHolder.");
         return null;
     }
+    /**
+     * Elimina todos los pedidos de un usuario.
+     * Solo accesible por administradores.
+     * @param idUsuario ID del usuario cuyos pedidos serán eliminados.
+     * @return Mensaje de éxito si se eliminan, o error si no se encuentran pedidos.
+     */
+    @DeleteMapping("/usuario/{idUsuario}")
+    public ResponseEntity<?> eliminarPedidosDeUsuario(@PathVariable Integer idUsuario) {
+        if (!esAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tienes permisos para eliminar los pedidos de un usuario.");
+        }
+
+        try {
+            pedidoService.eliminarPedidosDeUsuario(idUsuario);
+            return ResponseEntity.ok("Todos los pedidos del usuario han sido eliminados con éxito.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    /**
+     * Elimina todos los productos asociados a un pedido específico.
+     * Solo accesible por administradores.
+     *
+     * @param idPedido ID del pedido cuyos productos serán eliminados.
+     * @return Mensaje de éxito si la operación se completa correctamente.
+     */
+    @DeleteMapping("/{idPedido}/productos")
+    public ResponseEntity<?> eliminarProductosDePedido(@PathVariable Integer idPedido) {
+        // Verificar si el usuario autenticado es ADMIN
+        if (!esAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tienes permisos para eliminar productos de un pedido.");
+        }
+
+        try {
+            pedidoService.eliminarProductosDePedido(idPedido);
+            return ResponseEntity.ok("Productos eliminados del pedido con éxito.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 
     /**
      * Método de utilidad para verificar si el usuario autenticado es ADMIN.
