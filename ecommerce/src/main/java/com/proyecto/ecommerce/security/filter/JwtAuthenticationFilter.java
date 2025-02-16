@@ -55,6 +55,11 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         String username = userDetails.getUsername();
         Collection<? extends GrantedAuthority> roles = userDetails.getAuthorities();
 
+
+        //BORRAR
+        System.out.println("✅ Usuario autenticado: " + username);
+        System.out.println("✅ Roles asignados: " + roles);
+
         // Pasar roles y username en el token
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", roles.stream().map(GrantedAuthority::getAuthority).toList());
@@ -75,6 +80,9 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         body.put("token", token);
         body.put("username", username);
         body.put("mensaje", "Has iniciado sesión con éxito!");
+
+
+        System.out.println("✅ Token generado: " + token);//BORRAR
 
         response.getWriter().write(new ObjectMapper().writeValueAsString(body));
         response.setContentType(CONTENT_TYPE);

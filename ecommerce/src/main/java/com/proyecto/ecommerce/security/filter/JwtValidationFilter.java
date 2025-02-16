@@ -38,6 +38,7 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
 
         String header = request.getHeader(HEADER_AUTHORIZATION);
         if (header == null || !header.startsWith(PREFIX_TOKEN)) {
+            System.out.println("🔴 No hay token en la solicitud"); //BORRAR
             chain.doFilter(request, response);
             return;
         }
@@ -53,10 +54,21 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
 
             // Extraer la lista de roles correctamente desde los claims
             List<String> roles = claims.get("authorities", List.class);
+
+            //BORRAR TODO
+            if (username == null || roles == null) {
+                System.out.println("🔴 ERROR: El token no contiene username o roles correctamente");
+                response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                return;
+            }
+            System.out.println("✅ Usuario autenticado desde JWT: " + username);
+            System.out.println("✅ Roles en el token: " + roles);
+
             //  Convertir los roles a Collection<GrantedAuthority>
             Collection<GrantedAuthority> authorities = roles.stream()
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
+
 
             //  Autenticamos el usuario con los roles correctos
             SecurityContextHolder.getContext().setAuthentication(

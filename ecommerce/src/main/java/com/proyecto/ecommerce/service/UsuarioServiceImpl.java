@@ -38,57 +38,58 @@ public class UsuarioServiceImpl implements  UsuarioService{
 
     @Override
     public Usuario crearUsuario(Usuario usuario) {
-        // 1️⃣ Verificar si el username ya está en uso
+        // Verificar si el username ya está en uso
         if (usuarioRepository.findByUsername(usuario.getUsername()).isPresent()) {
             throw new CustomException("❌ El username ya se encuentra en uso.");
         }
 
-        // 2️⃣ Verificar si ya existe un ADMIN en la base de datos
+        //  Verificar si ya existe al menos un ADMIN en la base de datos
         boolean hayAdmin = existeAdmin();
 
-        // 3️⃣ Asignar roles por defecto (ROLE_USER)
+        // Asignar el rol por defecto (ROLE_USER)
         List<Role> rolesAsignados = new ArrayList<>();
-        Optional<Role> rolUser = roleRepository.findByName("ROLE_USER");
-        rolUser.ifPresent(rolesAsignados::add);
+        roleRepository.findByName("ROLE_USER").ifPresent(rolesAsignados::add);
 
-        // 4️⃣ Verificar si el usuario autenticado tiene permisos
+        //  Obtener información del usuario autenticado (si existe)
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean esAnonimo = (authentication == null || !authentication.isAuthenticated() || authentication.getName().equals("anonymousUser"));
 
-        // 5️⃣ Si NO hay administradores, el primer usuario será ADMIN
+        // Si NO hay administradores, el primer usuario registrado será ADMIN automáticamente
         if (!hayAdmin) {
-            Optional<Role> rolAdmin = roleRepository.findByName("ROLE_ADMIN");
-            rolAdmin.ifPresent(rolesAsignados::add);
-            usuario.setAdmin(true); // Se marca como admin
+            roleRepository.findByName("ROLE_ADMIN").ifPresent(rolesAsignados::add);
+            usuario.setAdmin(true);
         } else {
-            // 6️⃣ Si ya hay admins, verificar si el usuario autenticado puede crear admins
+            //  Si ya hay admins, verificar que solo un admin pueda crear más admins
             if (esAnonimo) {
-                usuario.setAdmin(false);  // ❌ Asegurar que el usuario anónimo no pueda ser admin
-                throw new CustomException("❌ No tienes permisos para crear administradores.");
-            }
+                usuario.setAdmin(false); //  Usuario anónimo NO puede ser ADMIN
+            } else {
+                String usernameAutenticado = authentication.getName();
+                Usuario usuarioAutenticado = obtenerUsuarioPorUsername(usernameAutenticado);
 
-            String usernameAutenticado = authentication.getName();
-            Usuario usuarioAutenticado = obtenerUsuarioPorUsername(usernameAutenticado);
+                boolean esAdmin = usuarioAutenticado.getRoles().stream()
+                        .anyMatch(rol -> rol.getName().equals("ROLE_ADMIN"));
 
-            // 7️⃣ Si el usuario autenticado NO es admin y trata de crear un admin, rechazarlo
-            boolean esAdmin = usuarioAutenticado.getRoles().stream().anyMatch(rol -> rol.getName().equals("ROLE_ADMIN"));
-            if (!esAdmin && usuario.isAdmin()) {
-                usuario.setAdmin(false);  // ❌ Forzar que el usuario no tenga permisos de admin
-                throw new CustomException("❌ Solo un administrador puede crear otros administradores.");
+                //  Si el usuario autenticado NO es admin y trata de crear un admin, rechazarlo
+                if (!esAdmin && usuario.isAdmin()) {
+                    throw new CustomException(" Solo un administrador puede crear otros administradores.");
+                }
             }
         }
 
-        // 8️⃣ 📌 FORZAR ELIMINACIÓN DEL ADMIN SI EL USUARIO NO TIENE PERMISOS
+        // 7️ FORZAR QUE SOLO LOS ADMIN CREADOS POR ADMINISTRADORES TENGAN ESE ROL
         if (!usuario.isAdmin()) {
             usuario.setAdmin(false);
+            rolesAsignados.removeIf(rol -> rol.getName().equals("ROLE_ADMIN")); //  Eliminar rol de ADMIN si no corresponde
         }
 
-        // 9️⃣ Asignar los roles verificados y encriptar la contraseña
+        // 8️⃣ Asignar los roles validados y encriptar la contraseña
         usuario.setRoles(rolesAsignados);
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
 
+        // 9️⃣ Guardar y devolver el usuario creado
         return usuarioRepository.save(usuario);
     }
+
 
 
 

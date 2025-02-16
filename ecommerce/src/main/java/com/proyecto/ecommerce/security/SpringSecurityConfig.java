@@ -79,27 +79,29 @@ public class SpringSecurityConfig {
                         // Rutas para crear usuario
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
 
-                        // 6) Rutas para GET un usuario específico =>
+                        //  Rutas para GET un usuario específico =>
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/getUser/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/usuarios/actualizar/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/usuarios/delete/**").hasRole("ADMIN")
 
-                        // 7) Rutas para pedidos => Autenticación (ROLE_USER o ROLE_ADMIN).
+                        //  Rutas para pedidos => Autenticación (ROLE_USER o ROLE_ADMIN).
                         //    Por ejemplo, un user normal puede crear su pedido,
                         //    un admin podría ver todos los pedidos, etc.
-                        .requestMatchers(HttpMethod.POST, "/api/pedidos").hasAnyRole("USER", "ADMIN") // Crear pedido
-                        .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/id/**").hasAnyRole("ADMIN")//La validacion la controlamos en el controller
-                        .requestMatchers(HttpMethod.GET, "/api/pedidos").hasRole("ADMIN") // Ver TODOS los pedidos
-                        .requestMatchers(HttpMethod.GET, "/api/pedidos/mios").hasAnyRole("USER", "ADMIN") // Ver solo los pedidos propios
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/{username}").hasAnyRole("USER", "ADMIN")//Ver pedidos utilizando consutlas
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/{username}/total-gastado").hasRole("ADMIN") //Ver total gsatado con consultas y solo rol AMIN
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/cantidad-productos-vendidos").hasRole("ADMIN")//Cantidad de productos vendidos solo para ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/cantidad-pedidos").hasRole("ADMIN")//Total de pedidods por username solo para ADMIN
-                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").hasAnyRole("USER", "ADMIN") // Actualizar
-                        .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasAnyRole("USER", "ADMIN") // Borrar
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/id/**").hasAnyRole( "USER","ADMIN")//La validacion la controlamos en el controller
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos").hasRole("ADMIN") // Ver TODOS los pedidos
+                        .requestMatchers(HttpMethod.POST, "/api/pedidos").hasAnyRole("USER", "ADMIN") // Crear pedido
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos/mios").hasAnyRole("USER", "ADMIN") // Ver solo los pedidos propio
+                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").hasRole("ADMIN") // SOLO ADMIN PUEDE ACTUALIZAR
+                        .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasRole("ADMIN") // Borrar solo Admins
 
 
-                        // 8) Cualquier otra ruta requiere autenticación
+                        .requestMatchers(HttpMethod.POST, "/api/pedido-producto").hasAnyRole("USER","ADMIN")
+
+                        // Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
                 )
 

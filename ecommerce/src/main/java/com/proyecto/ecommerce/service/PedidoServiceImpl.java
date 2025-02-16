@@ -60,8 +60,9 @@ public class PedidoServiceImpl implements PedidoService {
     @Override
     public void eliminarPedido(Integer idPedido) {
         Pedido existente = obtenerPedidoPorId(idPedido);
-        // Borrar primero los productos asociados al pedido
-        pedidoRepository.deleteProductosByPedido(idPedido);
+        // 🔥 Eliminar manualmente la relación con PedidoProducto antes de eliminar el pedido
+        existente.getPedidoProductos().clear();
+        pedidoRepository.save(existente);
 
         // Luego, eliminar el pedido
         pedidoRepository.deleteById(idPedido);

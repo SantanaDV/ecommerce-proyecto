@@ -1,6 +1,7 @@
 package com.proyecto.ecommerce.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -21,7 +22,7 @@ public class PedidoProducto {
     @NotNull(message = "El pedido es obligatorio")
     @ManyToOne
     @JoinColumn(name = "id_pedido", nullable = false)
-    @JsonIgnore
+    @JsonIgnoreProperties("pedidoProductos") //  Evita la serialización recursiva
     private Pedido pedido;  // Relación muchos a uno con Pedido.
 
     @NotNull(message = "El producto es obligatorio")

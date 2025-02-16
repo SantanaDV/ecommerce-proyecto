@@ -41,5 +41,6 @@ public class Pedido {
 
     //Relación: Un pedido puede tener varios registros de PedidoProducto
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties
     private List<PedidoProducto> pedidoProductos;
 }

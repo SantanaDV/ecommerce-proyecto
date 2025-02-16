@@ -1,17 +1,24 @@
 package com.proyecto.ecommerce.controller;
 
+import com.proyecto.ecommerce.dto.PedidoRequest;
 import com.proyecto.ecommerce.entity.Pedido;
+import com.proyecto.ecommerce.entity.PedidoProducto;
+import com.proyecto.ecommerce.entity.Producto;
 import com.proyecto.ecommerce.entity.Usuario;
+import com.proyecto.ecommerce.service.PedidoProductoService;
 import com.proyecto.ecommerce.service.PedidoService;
+import com.proyecto.ecommerce.service.ProductoService;
 import com.proyecto.ecommerce.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Controlador REST para la gestión de pedidos.
@@ -23,12 +30,16 @@ public class PedidoController {
 
     private final PedidoService pedidoService;
     private final UsuarioService usuarioService;
-
+    private final ProductoService productoService;
+    private final PedidoProductoService pedidoProductoService;
 
     @Autowired
-    public PedidoController(PedidoService pedidoService, UsuarioService usuarioService) {
+    public PedidoController(PedidoService pedidoService, UsuarioService usuarioService,
+                            ProductoService productoService, PedidoProductoService pedidoProductoService) {
         this.pedidoService = pedidoService;
         this.usuarioService = usuarioService;
+        this.productoService = productoService;
+        this.pedidoProductoService = pedidoProductoService;
     }
 
     /**
@@ -43,24 +54,46 @@ public class PedidoController {
     /**
      * Crea un nuevo pedido. Verifica datos como fecha, total y estado
      * según las validaciones definidas en el servicio.
-     * @param pedido Objeto Pedido con la información necesaria.
+     * @param pedidoRequest Objeto Pedido con la información necesaria.
      * @return El pedido creado, o un error si la validación falla.
      */
     @PostMapping
-    public ResponseEntity<?> crearPedido(@RequestBody Pedido pedido) {
+    public ResponseEntity<?> crearPedido(@RequestBody PedidoRequest pedidoRequest) {
         try {
-            // Obtener el username del token
+            // 🔍 Obtener el usuario autenticado
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            // Asumir que en tu service de Usuario hay un método para buscar por username
-            Usuario userLogueado = usuarioService.obtenerUsuarioPorUsername(username);
+            Usuario usuario = usuarioService.obtenerUsuarioPorUsername(username);
 
-            // Asignar el usuario al pedido
-            pedido.setUsuario(userLogueado);
+            // 📌 Crear un nuevo pedido
+            Pedido pedido = new Pedido();
+            pedido.setFecha(pedidoRequest.getFecha());
+            pedido.setTotal(pedidoRequest.getTotal());
+            pedido.setEstado(pedidoRequest.getEstado());
+            pedido.setUsuario(usuario);
 
-            Pedido creado = pedidoService.crearPedido(pedido);
-            return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+            // 💾 Guardar el pedido en la base de datos
+            Pedido pedidoGuardado = pedidoService.crearPedido(pedido);
+
+            // 📌 Asociar productos al pedido en la tabla intermedia
+            List<PedidoProducto> pedidoProductos = pedidoRequest.getProductos().stream().map(productoDTO -> {
+                Producto producto = productoService.obtenerProductoPorId(productoDTO.getIdProducto());
+
+                // Crear la relación en PedidoProducto
+                PedidoProducto pedidoProducto = new PedidoProducto();
+                pedidoProducto.setPedido(pedidoGuardado);
+                pedidoProducto.setProducto(producto);
+                pedidoProducto.setCantidad(productoDTO.getCantidad());
+
+                return pedidoProducto;
+            }).toList();
+
+            // 💾 Guardar la relación en la base de datos
+            pedidoProductos.forEach(pedidoProductoService::crear);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(pedidoGuardado);
+
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("❌ Error al crear el pedido: " + e.getMessage());
         }
     }
 
@@ -104,6 +137,10 @@ public class PedidoController {
         // Obtener el usuario autenticado
         String authUsername = obtenerUsuarioAutenticado();
 
+        if (authUsername == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("No estás autenticado. Inicia sesión para ver los pedidos.");
+        }
         // Si el usuario autenticado NO es ADMIN y trata de ver pedidos de otro usuario, se bloquea
         if (!authUsername.equals(username) && !esAdmin()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -135,6 +172,12 @@ public class PedidoController {
     @PutMapping("/{idPedido}")
     public ResponseEntity<?> actualizarPedido(@PathVariable Integer idPedido,
                                               @RequestBody Pedido datosNuevos) {
+        // Verificar si el usuario autenticado es ADMIN
+        if (!esAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tienes permisos para actualizar pedidos.");
+        }
+
         try {
             Pedido actualizado = pedidoService.actualizarPedido(idPedido, datosNuevos);
             return ResponseEntity.ok(actualizado);
@@ -143,6 +186,7 @@ public class PedidoController {
         }
     }
 
+
     /**
      * Elimina un pedido de la base de datos.
      * @param idPedido ID del pedido a eliminar.
@@ -150,6 +194,11 @@ public class PedidoController {
      */
     @DeleteMapping("/{idPedido}")
     public ResponseEntity<?> eliminarPedido(@PathVariable Integer idPedido) {
+        if (!esAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tienes permisos para eliminar pedidos.");
+        }
+
         try {
             pedidoService.eliminarPedido(idPedido);
             return ResponseEntity.ok("Pedido eliminado con éxito.");
@@ -157,6 +206,7 @@ public class PedidoController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
 
 
     /**
@@ -221,10 +271,25 @@ public class PedidoController {
      * Método de utilidad para obtener el usuario autenticado.
      */
     private String obtenerUsuarioAutenticado() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof UserDetails) {
-            return ((UserDetails) principal).getUsername();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            System.out.println(" No hay autenticación en el contexto.");
+            return null;
         }
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof UserDetails) {
+            String username = ((UserDetails) principal).getUsername();
+            System.out.println(" Usuario autenticado en SecurityContextHolder: " + username);
+            return username;
+        } else if (principal instanceof String) {
+            System.out.println(" Usuario autenticado (String) en SecurityContextHolder: " + principal);
+            return (String) principal;
+        }
+
+        System.out.println("No se encontró usuario autenticado en SecurityContextHolder.");
         return null;
     }
 
@@ -232,11 +297,14 @@ public class PedidoController {
      * Método de utilidad para verificar si el usuario autenticado es ADMIN.
      */
     private boolean esAdmin() {
-        return SecurityContextHolder.getContext().getAuthentication().getAuthorities()
-                .stream()
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getName().equals("anonymousUser")) {
+            return false; // No autenticado o usuario anónimo
+        }
+
+        return authentication.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
     }
-
 
 
 }

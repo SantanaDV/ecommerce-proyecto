@@ -1,10 +1,15 @@
 package com.proyecto.ecommerce.service;
 
+import com.proyecto.ecommerce.entity.Pedido;
 import com.proyecto.ecommerce.entity.PedidoProducto;
+import com.proyecto.ecommerce.entity.Producto;
 import com.proyecto.ecommerce.exception.CustomException;
 import com.proyecto.ecommerce.repository.PedidoProductoRepository;
+import com.proyecto.ecommerce.repository.PedidoRepository;
+import com.proyecto.ecommerce.repository.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,18 +24,37 @@ public class PedidoProductoServiceImpl implements PedidoProductoService {
     @Autowired
     private PedidoProductoRepository pedidoProductoRepository;
 
+    @Autowired
+    private PedidoRepository pedidoRepository;
+
+    @Autowired
+    private ProductoRepository productoRepository;
+
     @Override
     public List<PedidoProducto> listarTodos() {
         return pedidoProductoRepository.findAll();
     }
 
-    @Override
+    @Transactional
     public PedidoProducto crear(PedidoProducto pedidoProducto) {
-        validarCantidad(pedidoProducto.getCantidad());
-        // Podrías validar también que pedido != null, producto != null, etc.
+        if (pedidoProducto.getPedido() == null || pedidoProducto.getPedido().getIdPedido() == null) {
+            throw new CustomException("El pedido es obligatorio.");
+        }
+        if (pedidoProducto.getProducto() == null || pedidoProducto.getProducto().getIdProducto() == null) {
+            throw new CustomException("El producto es obligatorio.");
+        }
+
+        Pedido pedido = pedidoRepository.findById(pedidoProducto.getPedido().getIdPedido())
+                .orElseThrow(() -> new CustomException("Pedido no encontrado"));
+
+        Producto producto = productoRepository.findById(pedidoProducto.getProducto().getIdProducto())
+                .orElseThrow(() -> new CustomException("Producto no encontrado"));
+
+        pedidoProducto.setPedido(pedido);
+        pedidoProducto.setProducto(producto);
+
         return pedidoProductoRepository.save(pedidoProducto);
     }
-
     @Override
     public PedidoProducto obtenerPorId(Long id) {
         return pedidoProductoRepository.findById(id)
@@ -39,22 +63,22 @@ public class PedidoProductoServiceImpl implements PedidoProductoService {
     }
 
     @Override
+    @Transactional
     public PedidoProducto actualizar(Long id, PedidoProducto nuevosDatos) {
         PedidoProducto existente = obtenerPorId(id);
 
-        // Validar nuevamente la cantidad
+        // Validar  la cantidad
         validarCantidad(nuevosDatos.getCantidad());
 
-        // Actualizar campos permitidos (aquí asumimos que solo la cantidad se suele modificar)
-        existente.setCantidad(nuevosDatos.getCantidad());
-        // Si necesitas cambiar la asociación de pedido o producto, podrías hacerlo aquí:
-        // existente.setPedido(nuevosDatos.getPedido());
-        // existente.setProducto(nuevosDatos.getProducto());
 
+        existente.setCantidad(nuevosDatos.getCantidad());
+
+        existente.setCantidad(nuevosDatos.getCantidad());
         return pedidoProductoRepository.save(existente);
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
         PedidoProducto existente = obtenerPorId(id);
         pedidoProductoRepository.delete(existente);
