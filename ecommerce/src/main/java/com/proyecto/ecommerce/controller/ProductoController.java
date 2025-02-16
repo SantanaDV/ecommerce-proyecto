@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -158,6 +159,25 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.listarProductosPorNombreAscendente());
     }
 
+
+
+    // Añadimos la parte visual al frontend
+    @GetMapping("/admin/productos")
+    public String adminProductos(Model model) {
+
+        return "admin/productos";
+    }
+
+    @GetMapping("/admin/productos/editar/{id}")
+    public String editarProductoView(@PathVariable Integer id, Model model) {
+
+        return "admin/form-producto";
+    }
+
+    @GetMapping("/admin/productos/nuevo")
+    public String nuevoProductoView(Model model) {
+        return "admin/form-producto";
+    }
     /**
      * Método de utilidad para verificar si el usuario autenticado es ADMIN.
      */

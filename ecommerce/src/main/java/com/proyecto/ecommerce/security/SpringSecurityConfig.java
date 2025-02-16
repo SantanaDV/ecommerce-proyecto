@@ -4,8 +4,7 @@ import com.proyecto.ecommerce.security.filter.JwtAuthenticationFilter;
 import com.proyecto.ecommerce.security.filter.JwtValidationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+  
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,9 +56,23 @@ public class SpringSecurityConfig {
 
         return http
                 .authorizeHttpRequests(authz -> authz
+                        //Rutas a la documentacion pública
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs/swagger-config",
+                                "/v3/api-docs/public-api",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
 
+
+                        //Rutas visuales thymeleaf
+                        .requestMatchers("/", "/index", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/login", "/registro").permitAll()
                         //  Rutas para registrar usuario y loguearte de forma pública
-
+                        // Rutas para autenticación API y formulario
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/usuarios/register").permitAll()
 
@@ -101,26 +114,27 @@ public class SpringSecurityConfig {
 
                         .requestMatchers(HttpMethod.POST, "/api/pedido-producto").hasAnyRole("USER","ADMIN")
 
+
+
                         // Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
                 )
 
-                // Manejo de excepciones de autenticación y autorización
+// Manejo de excepciones de autenticación y autorización
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(customAuthenticationEntryPoint()) // Manejo de 401 Unauthorized
                         .accessDeniedHandler(customAccessDeniedHandler())
                 )// Manejo de 403 Forbidden
-                // Filtros JWT
-                .addFilterBefore(authFilter, JwtValidationFilter.class)
+                // Configuración de sesiones
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                //  Deshabilitar CSRF solo para las APIs, pero mantenerlo en login HTML
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+
                 .addFilter(validationFilter)
+                .addFilterBefore(authFilter, JwtValidationFilter.class)
 
-                // Deshabilitamos CSRF para una API REST
-                .csrf(csrf -> csrf.disable())
 
-                // Sin estado de sesión
-                .sessionManagement(sm ->
-                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
                 .build();
     }
 

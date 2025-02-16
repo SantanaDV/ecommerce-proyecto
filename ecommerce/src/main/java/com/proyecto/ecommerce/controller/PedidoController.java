@@ -5,6 +5,7 @@ import com.proyecto.ecommerce.entity.Pedido;
 import com.proyecto.ecommerce.entity.PedidoProducto;
 import com.proyecto.ecommerce.entity.Producto;
 import com.proyecto.ecommerce.entity.Usuario;
+import com.proyecto.ecommerce.exception.CustomException;
 import com.proyecto.ecommerce.service.PedidoProductoService;
 import com.proyecto.ecommerce.service.PedidoService;
 import com.proyecto.ecommerce.service.ProductoService;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -60,21 +62,21 @@ public class PedidoController {
     @PostMapping
     public ResponseEntity<?> crearPedido(@RequestBody PedidoRequest pedidoRequest) {
         try {
-            // 🔍 Obtener el usuario autenticado
+            //  Obtener el usuario autenticado
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             Usuario usuario = usuarioService.obtenerUsuarioPorUsername(username);
 
-            // 📌 Crear un nuevo pedido
+            //  Crear un nuevo pedido
             Pedido pedido = new Pedido();
             pedido.setFecha(pedidoRequest.getFecha());
             pedido.setTotal(pedidoRequest.getTotal());
             pedido.setEstado(pedidoRequest.getEstado());
             pedido.setUsuario(usuario);
 
-            // 💾 Guardar el pedido en la base de datos
+            // Guardar el pedido en la base de datos
             Pedido pedidoGuardado = pedidoService.crearPedido(pedido);
 
-            // 📌 Asociar productos al pedido en la tabla intermedia
+            //  Asociar productos al pedido en la tabla intermedia
             List<PedidoProducto> pedidoProductos = pedidoRequest.getProductos().stream().map(productoDTO -> {
                 Producto producto = productoService.obtenerProductoPorId(productoDTO.getIdProducto());
 
@@ -117,17 +119,13 @@ public class PedidoController {
      * @return El pedido si existe, o un código 404 si no se encuentra.
      */
     @GetMapping("/mios")
-    public ResponseEntity<?> listarMisPedidos() {
-        try {
-            // Obtenemos el username del token
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            // Buscamos solo los pedidos de ese user
-            List<Pedido> pedidosUsuario = pedidoService.listarPedidosPorUsername(username);
-            return ResponseEntity.ok(pedidosUsuario);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public String listarMisPedidos(Model model, Authentication authentication) {
+        String username = authentication.getName();
+        List<Pedido> pedidos = pedidoService.listarPedidosPorUsername(username);
+        model.addAttribute("pedidos", pedidos);
+        return "mis-pedidos";
     }
+
 
     /**
      * Obtener pedidos de un usuario por su username (para usuarios y admins).
@@ -165,25 +163,22 @@ public class PedidoController {
 
     /**
      * Actualiza la información de un pedido existente.
-     * @param idPedido ID del pedido a actualizar.
-     * @param datosNuevos Datos nuevos (fecha, total, estado, etc.).
      * @return El pedido actualizado, o un error si no se encuentra o válida.
      */
-    @PutMapping("/{idPedido}")
-    public ResponseEntity<?> actualizarPedido(@PathVariable Integer idPedido,
-                                              @RequestBody Pedido datosNuevos) {
-        // Verificar si el usuario autenticado es ADMIN
-        if (!esAdmin()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("No tienes permisos para actualizar pedidos.");
+    @GetMapping("/{id}")
+    public String verDetallePedido(@PathVariable Integer id,
+                                   Model model,
+                                   Authentication authentication) {
+        Pedido pedido = pedidoService.obtenerPedidoPorId(id);
+
+        // Validar que el usuario sea dueño del pedido o admin
+        String username = authentication.getName();
+        if (!pedido.getUsuario().getUsername().equals(username) && !esAdmin2(authentication)) {
+            throw new CustomException("No tienes permiso para ver este pedido");
         }
 
-        try {
-            Pedido actualizado = pedidoService.actualizarPedido(idPedido, datosNuevos);
-            return ResponseEntity.ok(actualizado);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        model.addAttribute("pedido", pedido);
+        return "detalle-pedido";
     }
 
 
@@ -347,6 +342,11 @@ public class PedidoController {
 
         return authentication.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private boolean esAdmin2(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
 
