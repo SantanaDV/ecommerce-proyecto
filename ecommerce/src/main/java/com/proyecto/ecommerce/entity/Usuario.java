@@ -3,12 +3,14 @@ package com.proyecto.ecommerce.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.proyecto.ecommerce.validation.Create;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -29,7 +31,8 @@ public class Usuario {
     private String username;
 
     // Contraseña encriptada (bcrypt) => se guarda cifrada en la BD
-    @NotBlank(message = "La contraseña es obligatoria")
+    // En la creación, la contraseña es obligatoria, pero en la actualización puede omitirse
+    @NotBlank(message = "La contraseña es obligatoria", groups = Create.class)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
@@ -71,6 +74,7 @@ public class Usuario {
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("usuario")
+    @ToString.Exclude
     private List<Pedido> pedidos;
 
     //  Método para limpiar las relaciones ANTES de eliminar el usuario

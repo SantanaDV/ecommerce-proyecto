@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +41,7 @@ public class UsuarioServiceImpl implements  UsuarioService{
     public Usuario crearUsuario(Usuario usuario) {
         // Verificar si el username ya está en uso
         if (usuarioRepository.findByUsername(usuario.getUsername()).isPresent()) {
-            throw new CustomException("❌ El username ya se encuentra en uso.");
+            throw new CustomException(" El username ya se encuentra en uso.");
         }
 
         //  Verificar si ya existe al menos un ADMIN en la base de datos
@@ -99,37 +100,66 @@ public class UsuarioServiceImpl implements  UsuarioService{
     }
 
     @Override
+    @Transactional
     public Usuario obtenerUsuarioPorId(Integer idUsuario) {
         return usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new CustomException("Usuario no encontrado con ID: " + idUsuario));
     }
 
     @Override
+    @Transactional
     public Usuario actualizarUsuario(Integer idUsuario, Usuario datosNuevos) {
-        Usuario existente = obtenerUsuarioPorId(idUsuario);
+        // (Opcional) Verificar que el usuario autenticado sea admin
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            throw new CustomException("Solo un administrador puede modificar este usuario.");
+        }
 
-        // Actualiza los campos que se deseen permitir modificar
+        Usuario existente = obtenerUsuarioPorId(idUsuario);
+        System.out.println("Actualizando usuario con id: " + idUsuario);
+        System.out.println("Datos actuales: " + existente);
+        System.out.println("Datos nuevos: " + datosNuevos);
+
+        // Actualizar campos básicos
         existente.setNombre(datosNuevos.getNombre());
         existente.setApellido(datosNuevos.getApellido());
-        existente.setDireccion(datosNuevos.getDireccion());
         existente.setCorreo(datosNuevos.getCorreo());
-
-// Encriptar la contraseña en caso de que quiera cambiarla
+        existente.setDireccion(datosNuevos.getDireccion());
         if (datosNuevos.getPassword() != null && !datosNuevos.getPassword().isBlank()) {
             existente.setPassword(passwordEncoder.encode(datosNuevos.getPassword()));
         }
-        return usuarioRepository.save(existente);
+
+        // Construir una nueva lista de roles:
+        List<Role> nuevosRoles = new ArrayList<>();
+        Role roleUser = roleRepository.findByName("ROLE_USER")
+                .orElseThrow(() -> new CustomException("Rol USER no encontrado."));
+        nuevosRoles.add(roleUser);
+
+        if (datosNuevos.isAdmin()) {
+            Role roleAdmin = roleRepository.findByName("ROLE_ADMIN")
+                    .orElseThrow(() -> new CustomException("Rol ADMIN no encontrado."));
+            nuevosRoles.add(roleAdmin);
+            existente.setAdmin(true);
+        } else {
+            existente.setAdmin(false);
+        }
+
+        existente.setRoles(nuevosRoles);
+
+        Usuario actualizado = usuarioRepository.save(existente);
+        System.out.println("Usuario actualizado: " + actualizado);
+        return actualizado;
     }
 
     @Override
     public void eliminarUsuario(Integer idUsuario) {
         Usuario usuario = obtenerUsuarioPorId(idUsuario);
 
-        // 🔥 Primero, eliminar manualmente los pedidos asociados
+        //  Primero, eliminar manualmente los pedidos asociados
         usuario.getPedidos().clear();
         usuarioRepository.save(usuario);  // Guardar el cambio antes de eliminar
 
-        // 🔥 Se ejecutará `@PreRemove` automáticamente antes de la eliminación
+        // Se ejecutará `@PreRemove` automáticamente antes de la eliminación
         usuarioRepository.delete(usuario);
     }
 

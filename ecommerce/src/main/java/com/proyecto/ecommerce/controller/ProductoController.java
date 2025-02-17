@@ -33,6 +33,7 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.listarProductos());
     }
 
+
     /**
      * Obtiene un producto específico por su ID.
      * Cualquier usuario puede consultar productos.

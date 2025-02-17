@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Perfil - Tienda Online</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+<!-- Barra de navegación -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/}">E-Commerce</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">Inicio</a></li>
+            </ul>
+            <div class="d-flex">
+                <!-- Botón de logout controlado por JavaScript -->
+                <a href="/logout" id="logoutBtn" class="btn btn-outline-light">Salir</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Contenido principal -->
+<div class="container mt-4">
+    <h1>Mi Perfil</h1>
+    <p>Bienvenido, <span th:text="${usuario}"></span></p>
+
+    <!-- Opciones disponibles para el usuario -->
+    <div class="mb-4">
+        <h3>Opciones para Usuario</h3>
+        <ul>
+            <li><a th:href="@{/perfil/datos}">Mis Datos</a></li>
+            <li class="nav-item"><a class="nav-link" th:href="@{/carrito}">Mi Carrito</a></li>
+        </ul>
+    </div>
+
+    <!-- Opciones adicionales para Administradores -->
+    <div sec:authorize="hasRole('ADMIN')">
+        <h3>Opciones para Administrador</h3>
+        <ul>
+            <li><a th:href="@{/admin/usuarios}">Gestión de Usuarios</a></li>
+            <li><a th:href="@{/admin/productos}">Gestión de Productos</a></li>
+            <li><a th:href="@{/admin/pedidos}">Gestión de Pedidos</a></li>
+        </ul>
+    </div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

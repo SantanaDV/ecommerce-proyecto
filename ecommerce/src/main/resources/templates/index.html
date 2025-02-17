@@ -1,41 +1,32 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8">
     <title>Tienda Online</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <style>
-        .product-card {
-            transition: transform 0.2s;
-            min-height: 380px;
-        }
-        .product-card:hover {
-            transform: translateY(-3px);
-        }
+        /* Tus estilos para el index */
+        .product-card { transition: transform 0.2s; min-height: 380px; }
+        .product-card:hover { transform: translateY(-3px); }
     </style>
 </head>
 <body class="bg-light">
-<!-- Barra de navegación según seguridad -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm" th:fragment="nav">
+<!-- Barra de navegación -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
     <div class="container">
         <a class="navbar-brand" th:href="@{/}">E-Commerce</a>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" th:href="@{/}">Inicio</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" th:href="@{/productos}">Productos</a>
-                </li>
+                <!-- Enlaces públicos -->
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/productos}">Productos</a></li>
+                <!-- Enlace que solo se muestra si el usuario está autenticado -->
                 <li class="nav-item" sec:authorize="isAuthenticated()">
                     <a class="nav-link" th:href="@{/pedidos/mios}">Mis Pedidos</a>
                 </li>
-                <!-- Menú Admin según roles -->
+                <!-- Menú para administradores -->
                 <li class="nav-item dropdown" sec:authorize="hasRole('ADMIN')">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        Admin
-                    </a>
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Admin</a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" th:href="@{/admin/usuarios}">Usuarios</a></li>
                         <li><a class="dropdown-item" th:href="@{/admin/productos}">Productos</a></li>
@@ -43,30 +34,22 @@
                     </ul>
                 </li>
             </ul>
-
-            <!-- Sección derecha: Carrito y auth -->
-            <div class="d-flex align-items-center gap-3">
-                <a th:href="@{/carrito}" class="btn btn-outline-light position-relative">
-                    🛒 Carrito
-                    <span th:if="${carrito != null}"
-
-                          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            <span th:text="${#session.getAttribute('carrito').size()}"></span>
-                        </span>
-                </a>
-                <div sec:authorize="isAuthenticated()">
-                    <span class="text-white me-2">Hola, <span sec:authentication="name"></span></span>
-                    <a th:href="@{/logout}" class="btn btn-outline-light">Salir</a>
+            <!-- Sección de autenticación (p. ej., Entrar / Mi Perfil y Salir) -->
+            <div id="auth-section" class="d-flex align-items-center gap-3">
+                <!-- Esta sección puede ser manejada con JavaScript o con sec:authorize también -->
+                <div id="not-authenticated" sec:authorize="!isAuthenticated()">
+                    <a href="/login-page" class="btn btn-outline-light">Entrar</a>
                 </div>
-                <div sec:authorize="!isAuthenticated()">
-                    <a th:href="@{/login}" class="btn btn-outline-light">Entrar</a>
+                <div id="authenticated" sec:authorize="isAuthenticated()">
+                    <a href="/profile" class="btn btn-outline-light">Mi Perfil</a>
+                    <a href="/logout" id="logoutBtn" class="btn btn-outline-light">Salir</a>
                 </div>
             </div>
         </div>
     </div>
 </nav>
 
-<!-- Contenido principal -->
+<!-- Contenido principal: Listado de productos -->
 <main class="container mt-4">
     <div class="row mb-4">
         <div class="col-12 text-center">
@@ -74,8 +57,6 @@
             <p class="lead text-muted">Explora nuestros productos destacados</p>
         </div>
     </div>
-
-    <!-- Listado de productos -->
     <div class="row row-cols-1 row-cols-md-3 g-4">
         <div class="col" th:each="producto : ${productos}">
             <div class="card h-100 product-card shadow-sm">
@@ -86,18 +67,49 @@
                     <p class="h5 text-primary"
                        th:text="'€' + ${#numbers.formatDecimal(producto.precio, 1, 2)}"></p>
                 </div>
-                <div class="card-footer bg-transparent">
-                    <form th:action="@{/carrito/agregar}" method="post">
-                        <input type="hidden" name="idProducto" th:value="${producto.idProducto}">
-                        <button type="submit" class="btn btn-primary w-100">
-                            Añadir al carrito
-                        </button>
-                    </form>
-                </div>
+
             </div>
         </div>
     </div>
 </main>
+
+<!-- Script para actualizar la sección de autenticación  y salir-->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const token = localStorage.getItem("token");
+
+        if (token) {
+            // Intenta validar el token con el endpoint protegido
+            fetch('/api/validate', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // El token es válido, muestra la sección autenticada
+                        document.getElementById("not-authenticated").style.display = "none";
+                        document.getElementById("authenticated").style.display = "block";
+                    } else {
+                        // Si el token no es válido, lo elimina y muestra la UI de usuario anónimo
+                        localStorage.removeItem("token");
+                        document.getElementById("not-authenticated").style.display = "block";
+                        document.getElementById("authenticated").style.display = "none";
+                    }
+                })
+                .catch(error => {
+                    // En caso de error, elimina el token y actualiza la UI
+                    localStorage.removeItem("token");
+                    document.getElementById("not-authenticated").style.display = "block";
+                    document.getElementById("authenticated").style.display = "none";
+                });
+        } else {
+            document.getElementById("not-authenticated").style.display = "block";
+            document.getElementById("authenticated").style.display = "none";
+        }
+
+    });
+</script>
+
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -52,6 +52,8 @@ public class SpringSecurityConfig {
 
         // JWT Filters
         JwtAuthenticationFilter authFilter = new JwtAuthenticationFilter(authenticationManager());
+        // Se configura para procesar la URL /login
+        authFilter.setFilterProcessesUrl("/login");
         JwtValidationFilter validationFilter = new JwtValidationFilter(authenticationManager());
 
         return http
@@ -69,8 +71,9 @@ public class SpringSecurityConfig {
 
 
                         //Rutas visuales thymeleaf
-                        .requestMatchers("/", "/index", "/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers("/login", "/registro").permitAll()
+                        .requestMatchers("/", "/index", "/css/**", "/js/**", "/images/**","/productos").permitAll()
+                        // Permitir acceso a la vista de login y registro
+                        .requestMatchers("/login-page", "/registro").permitAll()
                         //  Rutas para registrar usuario y loguearte de forma pública
                         // Rutas para autenticación API y formulario
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
@@ -128,8 +131,8 @@ public class SpringSecurityConfig {
                 // Configuración de sesiones
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                //  Deshabilitar CSRF solo para las APIs, pero mantenerlo en login HTML
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+                //  Deshabilitar CSRF
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/login","/carrito/**", "/admin/usuarios/delete/**", "/admin/usuarios/actualizar"))
 
                 .addFilter(validationFilter)
                 .addFilterBefore(authFilter, JwtValidationFilter.class)

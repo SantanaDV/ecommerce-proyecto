@@ -35,4 +35,11 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Credenciales incorrectas"));
         }
     }
+
+    @GetMapping("/validate")
+    public ResponseEntity<?> validate(Authentication authentication) {
+        // Si se llega aquí, el token es válido y tenemos información del usuario
+        return ResponseEntity.ok(Map.of("username", authentication.getName()));
+    }
+
 }

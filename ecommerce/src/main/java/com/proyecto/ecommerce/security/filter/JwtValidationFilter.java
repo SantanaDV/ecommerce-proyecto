@@ -7,6 +7,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -36,13 +37,30 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
                                     FilterChain chain)
             throws IOException, ServletException {
 
+
+        String token = null;
         String header = request.getHeader(HEADER_AUTHORIZATION);
-        if (header == null || !header.startsWith(PREFIX_TOKEN)) {
+
+        // Primero, intentamos obtener el token del header
+        if (header != null && header.startsWith(PREFIX_TOKEN)) {
+            token = header.replace(PREFIX_TOKEN, "").trim();
+        } else {
+            // Si no está en el header, lo buscamos en las cookies
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("JWT_TOKEN".equals(cookie.getName())) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (token == null || token.isEmpty()) {
             chain.doFilter(request, response);
             return;
         }
 
-        String token = header.replace(PREFIX_TOKEN, "").trim();
         try {
             Jws<Claims> jwsClaims = Jwts.parser()
                     .verifyWith(SECRET_KEY).build()
@@ -51,16 +69,12 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
             Claims claims = jwsClaims.getPayload();
             String username = claims.getSubject();
 
-            // Extraer la lista de roles correctamente desde los claims
             List<String> roles = claims.get("authorities", List.class);
 
-            //BORRAR TODO
             if (username == null || roles == null) {
-
                 response.setStatus(HttpStatus.UNAUTHORIZED.value());
                 return;
             }
-
 
             //  Convertir los roles a Collection<GrantedAuthority>
             Collection<GrantedAuthority> authorities = roles.stream()
@@ -76,13 +90,15 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
             chain.doFilter(request, response);
 
         } catch (JwtException e) {
-            Map<String, String> body = Map.of(
-                    "error", e.getMessage(),
-                    "message", "El token JWT no es válido"
-            );
-            response.getWriter().write(new ObjectMapper().writeValueAsString(body));
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            response.setContentType(CONTENT_TYPE);
+            // Eliminar la cookie con el token inválido
+            Cookie expiredCookie = new Cookie("JWT_TOKEN", "");
+            expiredCookie.setPath("/");
+            expiredCookie.setMaxAge(0); // Eliminar cookie
+            response.addCookie(expiredCookie);
+
+            // Redirigir al usuario a la página de  index
+            response.sendRedirect("/");
+            return;
         }
     }
 }

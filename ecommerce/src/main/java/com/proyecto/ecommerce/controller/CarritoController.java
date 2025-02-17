@@ -8,10 +8,8 @@ import com.proyecto.ecommerce.service.ProductoService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -111,7 +109,21 @@ public class CarritoController {
 
         return "redirect:/pedidos/mios";
     }
-
+    // Nuevo método para visualizar el carrito (Mi Carrito)
+    @GetMapping
+    public String verCarrito(HttpSession session, Model model) {
+        List<CarritoItem> carrito = obtenerCarrito(session);
+        model.addAttribute("carrito", carrito);
+        double total = carrito.stream()
+                .mapToDouble(item -> item.getProducto().getPrecio() * item.getCantidad())
+                .sum();
+        int totalItems = carrito.stream()
+                .mapToInt(CarritoItem::getCantidad)
+                .sum();
+        model.addAttribute("total", total);
+        model.addAttribute("totalItems", totalItems);
+        return "carrito"; // Vista: templates/carrito.html
+    }
     @ModelAttribute("total")
     public double calcularTotal(HttpSession session) {
         return obtenerCarrito(session).stream()

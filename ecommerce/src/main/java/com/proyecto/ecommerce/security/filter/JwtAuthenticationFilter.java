@@ -57,7 +57,6 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
 
 
-
         // Pasar roles y username en el token
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", roles.stream().map(GrantedAuthority::getAuthority).toList());
@@ -71,6 +70,13 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                 .signWith(SECRET_KEY)
                 .compact();
 
+// Creamos una cookie de inicio de sesion
+        Cookie jwtCookie = new Cookie("JWT_TOKEN", token);
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setSecure(true); // Solo en HTTPS
+        jwtCookie.setPath("/"); // Se envía en todas las peticiones
+        jwtCookie.setMaxAge(3600); // 1 hora de duración
+        response.addCookie(jwtCookie);
 
         response.addHeader(HEADER_AUTHORIZATION, PREFIX_TOKEN + token);
 
