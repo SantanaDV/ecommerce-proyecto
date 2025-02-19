@@ -68,8 +68,6 @@ public class SpringSecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**"
                         ).permitAll()
-
-
                         //Rutas visuales thymeleaf
                         .requestMatchers("/", "/index", "/css/**", "/js/**", "/images/**","/productos").permitAll()
                         // Permitir acceso a la vista de login y registro
@@ -77,6 +75,7 @@ public class SpringSecurityConfig {
                         //  Rutas para registrar usuario y loguearte de forma pública
                         // Rutas para autenticación API y formulario
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/usuarios/register").permitAll()
 
                         //  Gestión de productos (solo administradores)
@@ -131,9 +130,16 @@ public class SpringSecurityConfig {
                 // Configuración de sesiones
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                //  Deshabilitar CSRF
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/login","/carrito/**", "/admin/usuarios/delete/**", "/admin/usuarios/actualizar"))
+                //  Deshabilitar CSRF para las rutas de los controladores de thymeleaf
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers(
 
+                                "/login",
+                                "/carrito/**",
+                                "admin/**"
+
+                        )
+                )
                 .addFilter(validationFilter)
                 .addFilterBefore(authFilter, JwtValidationFilter.class)
 

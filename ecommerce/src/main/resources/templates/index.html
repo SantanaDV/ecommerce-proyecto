@@ -36,9 +36,10 @@
             </ul>
             <!-- Sección de autenticación (p. ej., Entrar / Mi Perfil y Salir) -->
             <div id="auth-section" class="d-flex align-items-center gap-3">
-                <!-- Esta sección puede ser manejada con JavaScript o con sec:authorize también -->
+
                 <div id="not-authenticated" sec:authorize="!isAuthenticated()">
                     <a href="/login-page" class="btn btn-outline-light">Entrar</a>
+                    <a href="/registro" class="btn btn-outline-light">Registrarse</a>
                 </div>
                 <div id="authenticated" sec:authorize="isAuthenticated()">
                     <a href="/profile" class="btn btn-outline-light">Mi Perfil</a>
