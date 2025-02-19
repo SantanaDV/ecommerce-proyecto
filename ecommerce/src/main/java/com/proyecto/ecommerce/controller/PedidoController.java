@@ -89,13 +89,13 @@ public class PedidoController {
                 return pedidoProducto;
             }).toList();
 
-            // 💾 Guardar la relación en la base de datos
+            // Guardar la relación en la base de datos
             pedidoProductos.forEach(pedidoProductoService::crear);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(pedidoGuardado);
 
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("❌ Error al crear el pedido: " + e.getMessage());
+            return ResponseEntity.badRequest().body(" Error al crear el pedido: " + e.getMessage());
         }
     }
 

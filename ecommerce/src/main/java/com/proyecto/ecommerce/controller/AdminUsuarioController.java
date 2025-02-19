@@ -78,7 +78,7 @@ public class AdminUsuarioController {
         Usuario usuario = usuarioService.obtenerUsuarioPorId(id);
         // Agregamos el objeto al modelo con el nombre "usuarioUpdate"
         model.addAttribute("usuarioUpdate", usuario);
-        // También se puede agregar la URL de acción si se desea
+        // También se puede agregar la URL de acción, esto es porque antes en el mismo formulario hacia las dos cosas, posteriormente cambiado
         model.addAttribute("actionUrl", (usuario.getIdUsuario() == null) ? "/admin/usuarios/crear" : "/admin/usuarios/actualizar");
         return "admin/form-usuario"; // Vista: src/main/resources/templates/admin/form-usuario.html
     }

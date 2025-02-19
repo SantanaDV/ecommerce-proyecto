@@ -2,8 +2,8 @@ package com.proyecto.ecommerce.controller;
 
 import com.proyecto.ecommerce.dto.PedidoRequest;
 import com.proyecto.ecommerce.dto.ProductoCantidadDTO;
+import com.proyecto.ecommerce.entity.CarritoItem;
 import com.proyecto.ecommerce.entity.Producto;
-import com.proyecto.ecommerce.service.PedidoService;
 import com.proyecto.ecommerce.service.ProductoService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
@@ -16,7 +16,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/carrito")
@@ -124,7 +123,7 @@ public class CarritoController {
         pedidoRequest.setProductos(productos);
         pedidoRequest.setTotal(total);
 
-        // Crear pedido (llamando a tu controlador de pedidos o servicio)
+        // Crear pedido
         pedidoController.crearPedido(pedidoRequest);
 
         // Limpiar el carrito
@@ -177,30 +176,6 @@ public class CarritoController {
         return carrito;
     }
 
-    // Clase interna para manejar items del carrito
-    private static class CarritoItem {
-        private Producto producto;
-        private Integer cantidad;
 
-        public CarritoItem(Producto producto, Integer cantidad) {
-            this.producto = producto;
-            this.cantidad = cantidad;
-        }
 
-        public Producto getProducto() {
-            return producto;
-        }
-
-        public void setProducto(Producto producto) {
-            this.producto = producto;
-        }
-
-        public Integer getCantidad() {
-            return cantidad;
-        }
-
-        public void setCantidad(Integer cantidad) {
-            this.cantidad = cantidad;
-        }
-    }
 }

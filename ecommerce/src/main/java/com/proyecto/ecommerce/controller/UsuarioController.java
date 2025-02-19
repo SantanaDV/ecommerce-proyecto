@@ -106,12 +106,12 @@ public class UsuarioController {
                 throw new CustomException("Debes estar autenticado para ver perfiles de usuario.");
             }
 
-            // 1) Obtener al user logueado
+            //  Obtener al user logueado
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             boolean esAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-            // 2) Obtener el usuario que se desea ver
+            //  Obtener el usuario que se desea ver
             Usuario usuarioBuscado = usuarioService.obtenerUsuarioPorId(idUsuario);
 
 
@@ -119,9 +119,9 @@ public class UsuarioController {
                 throw new CustomException("El usuario con ID " + idUsuario + " no existe.");
             }
 
-            // 3) Verificar:
-            //    a) Si es admin => OK
-            //    b) Si no es admin => verificar que "usuarioBuscado.getUsername() == username"
+            //Verificar:
+            //     Si es admin => OK
+            //    Si no es admin => verificar que "usuarioBuscado.getUsername() == username"
             if (!esAdmin && !usuarioBuscado.getUsername().equals(username)) {
                 throw new CustomException("No puedes ver el perfil de otro usuario.");
             }

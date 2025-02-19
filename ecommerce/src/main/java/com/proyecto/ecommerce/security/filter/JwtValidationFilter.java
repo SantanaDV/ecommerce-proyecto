@@ -47,11 +47,11 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
                 token = header.replace(PREFIX_TOKEN, "").trim();
             }
         } else {
-            // Para rutas que no son de la API, primero intentamos el header...
+            // Para rutas que no son de la API, primero intentamos el header
             if (header != null && header.startsWith(PREFIX_TOKEN)) {
                 token = header.replace(PREFIX_TOKEN, "").trim();
             } else {
-                // ... y si no está, buscamos en las cookies.
+                //  y si no está, buscamos en las cookies.
                 if (request.getCookies() != null) {
                     for (Cookie cookie : request.getCookies()) {
                         if ("JWT_TOKEN".equals(cookie.getName())) {

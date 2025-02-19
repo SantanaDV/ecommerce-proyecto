@@ -6,7 +6,9 @@ import org.springframework.format.datetime.standard.DateTimeFormatterRegistrar;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.format.DateTimeFormatter;
-
+/**
+ * Configuración para formatear la fecha y que salga con el patron "yyyy-MM-dd"
+ */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 

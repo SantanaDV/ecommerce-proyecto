@@ -56,7 +56,6 @@ public class PedidoProductoController {
                 return ResponseEntity.ok(pedidoProductoService.listarTodos());
             } else {
                 // Si es user => listar SOLO los registros de sus pedidos
-                // Lógica: buscar sus pedidos y traer la tabla intermedia correspondiente, o
                 // usar un método en el service que filtre directamente por username
                 List<PedidoProducto> registrosUser = pedidoProductoService.listarPorUsuario(username);
                 return ResponseEntity.ok(registrosUser);
