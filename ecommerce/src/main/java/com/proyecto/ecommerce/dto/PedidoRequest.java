@@ -16,6 +16,9 @@ import java.util.List;
 @AllArgsConstructor
 public class PedidoRequest {
 
+    @NotNull(message = "El usuario es obligatorio")
+    private Integer usuarioId;
+
     @NotNull(message = "La fecha del pedido es obligatoria")
     private LocalDate fecha;
 

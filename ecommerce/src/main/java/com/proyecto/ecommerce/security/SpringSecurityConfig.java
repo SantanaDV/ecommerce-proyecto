@@ -14,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -56,7 +57,11 @@ public class SpringSecurityConfig {
         authFilter.setFilterProcessesUrl("/login");
         JwtValidationFilter validationFilter = new JwtValidationFilter(authenticationManager());
 
+
+
         return http
+                .formLogin(AbstractHttpConfigurer::disable)
+
                 .authorizeHttpRequests(authz -> authz
                         //Rutas a la documentacion pública
                         .requestMatchers(
@@ -106,15 +111,18 @@ public class SpringSecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/{username}/total-gastado").hasRole("ADMIN") //Ver total gsatado con consultas y solo rol AMIN
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/cantidad-productos-vendidos").hasRole("ADMIN")//Cantidad de productos vendidos solo para ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/cantidad-pedidos").hasRole("ADMIN")//Total de pedidods por username solo para ADMIN
-                        .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/id/**").hasAnyRole( "USER","ADMIN")//La validacion la controlamos en el controller
-                        .requestMatchers(HttpMethod.GET, "/api/pedidos").hasRole("ADMIN") // Ver TODOS los pedidos
-                        .requestMatchers(HttpMethod.POST, "/api/pedidos").hasAnyRole("USER", "ADMIN") // Crear pedido
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/mios").hasAnyRole("USER", "ADMIN") // Ver solo los pedidos propio
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos//detalle-pedido/**").hasAnyRole("USER", "ADMIN") // Ver solo los pedidos propio
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos/usuario/id/**").hasAnyRole( "USER","ADMIN")//La validacion la controlamos en el controller
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos/*").hasAnyRole("USER", "ADMIN")// Ver TODOS los pedidos
+
+                        .requestMatchers(HttpMethod.POST, "/api/pedidos").hasAnyRole("USER", "ADMIN") // Crear pedido
+
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").hasRole("ADMIN") // SOLO ADMIN PUEDE ACTUALIZAR
                         .requestMatchers(HttpMethod.DELETE, "/api/pedidos/**").hasRole("ADMIN") // Borrar solo Admins
 
 
-                        .requestMatchers(HttpMethod.POST, "/api/pedido-producto").hasAnyRole("USER","ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/pedido-producto").hasRole("ADMIN")
 
 
 
@@ -136,7 +144,9 @@ public class SpringSecurityConfig {
 
                                 "/login",
                                 "/carrito/**",
-                                "admin/**"
+                                "/admin/**",
+                                "/api/**"
+
 
                         )
                 )

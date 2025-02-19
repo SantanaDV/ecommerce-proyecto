@@ -107,13 +107,32 @@ public class PedidoController {
     @GetMapping("/{idPedido}")
     public ResponseEntity<?> obtenerPedido(@PathVariable Integer idPedido) {
         try {
+            // Obtener el usuario autenticado
+            String authUsername = obtenerUsuarioAutenticado();
+            if (authUsername == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("No estás autenticado. Por favor, inicia sesión para ver los pedidos.");
+            }
+
+            // Obtener el pedido desde la base de datos
             Pedido pedido = pedidoService.obtenerPedidoPorId(idPedido);
+            if (pedido == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Pedido no encontrado.");
+            }
+
+            // Verificar que el usuario autenticado es el dueño del pedido o es ADMIN
+            if (!pedido.getUsuario().getUsername().equals(authUsername) && !esAdmin()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("No tienes permiso para ver los pedidos de otro usuario.");
+            }
+
             return ResponseEntity.ok(pedido);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ocurrió un error: " + e.getMessage());
         }
     }
-
     /**
      * Obtiene un pedido por su ID.
      * @return El pedido si existe, o un código 404 si no se encuentra.
@@ -165,7 +184,7 @@ public class PedidoController {
      * Actualiza la información de un pedido existente.
      * @return El pedido actualizado, o un error si no se encuentra o válida.
      */
-    @GetMapping("/{id}")
+    @GetMapping("/detalle-pedido/{id}")
     public String verDetallePedido(@PathVariable Integer id,
                                    Model model,
                                    Authentication authentication) {
@@ -328,6 +347,44 @@ public class PedidoController {
             return ResponseEntity.ok("Productos eliminados del pedido con éxito.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+    @PutMapping("/{idPedido}")
+    public ResponseEntity<?> actualizarPedido(@PathVariable Integer idPedido,
+                                              @RequestBody PedidoRequest pedidoRequest) {
+        try {
+            // Obtener el usuario autenticado
+            String authUsername = obtenerUsuarioAutenticado();
+            if (authUsername == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("No estás autenticado. Por favor, inicia sesión para actualizar el pedido.");
+            }
+
+            // Recuperar el pedido existente
+            Pedido pedidoExistente = pedidoService.obtenerPedidoPorId(idPedido);
+            if (pedidoExistente == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Pedido no encontrado.");
+            }
+
+            // Verificar que el usuario autenticado es el dueño del pedido o tiene rol ADMIN
+            if (!pedidoExistente.getUsuario().getUsername().equals(authUsername) && !esAdmin()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("No tienes permiso para actualizar el pedido de otro usuario.");
+            }
+
+            // Actualizar los campos del pedido (puedes ajustar según lo que desees permitir modificar)
+            pedidoExistente.setFecha(pedidoRequest.getFecha());
+            pedidoExistente.setTotal(pedidoRequest.getTotal());
+            pedidoExistente.setEstado(pedidoRequest.getEstado());
+
+
+            // Realizar la actualización mediante el servicio
+            Pedido pedidoActualizado = pedidoService.actualizarPedido(idPedido, pedidoExistente);
+            return ResponseEntity.ok(pedidoActualizado);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error al actualizar el pedido: " + e.getMessage());
         }
     }
 

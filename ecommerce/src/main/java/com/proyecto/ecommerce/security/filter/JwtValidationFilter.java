@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,20 +38,26 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
                                     FilterChain chain)
             throws IOException, ServletException {
 
-
         String token = null;
         String header = request.getHeader(HEADER_AUTHORIZATION);
 
-        // Primero, intentamos obtener el token del header
-        if (header != null && header.startsWith(PREFIX_TOKEN)) {
-            token = header.replace(PREFIX_TOKEN, "").trim();
+        // Si la URL empieza con "/api/", usaremos solo el header.
+        if (request.getRequestURI().startsWith("/api/")) {
+            if (header != null && header.startsWith(PREFIX_TOKEN)) {
+                token = header.replace(PREFIX_TOKEN, "").trim();
+            }
         } else {
-            // Si no está en el header, lo buscamos en las cookies
-            if (request.getCookies() != null) {
-                for (Cookie cookie : request.getCookies()) {
-                    if ("JWT_TOKEN".equals(cookie.getName())) {
-                        token = cookie.getValue();
-                        break;
+            // Para rutas que no son de la API, primero intentamos el header...
+            if (header != null && header.startsWith(PREFIX_TOKEN)) {
+                token = header.replace(PREFIX_TOKEN, "").trim();
+            } else {
+                // ... y si no está, buscamos en las cookies.
+                if (request.getCookies() != null) {
+                    for (Cookie cookie : request.getCookies()) {
+                        if ("JWT_TOKEN".equals(cookie.getName())) {
+                            token = cookie.getValue();
+                            break;
+                        }
                     }
                 }
             }
@@ -68,7 +75,6 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
 
             Claims claims = jwsClaims.getPayload();
             String username = claims.getSubject();
-
             List<String> roles = claims.get("authorities", List.class);
 
             if (username == null || roles == null) {
@@ -76,29 +82,22 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
                 return;
             }
 
-            //  Convertir los roles a Collection<GrantedAuthority>
             Collection<GrantedAuthority> authorities = roles.stream()
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
-
-            //  Autenticamos el usuario con los roles correctos
             SecurityContextHolder.getContext().setAuthentication(
-                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                            username, null, authorities));
+                    new UsernamePasswordAuthenticationToken(username, null, authorities));
 
             chain.doFilter(request, response);
 
         } catch (JwtException e) {
-            // Eliminar la cookie con el token inválido
+            // Si el token es inválido, se elimina la cookie y se redirige (o se envía error según convenga)
             Cookie expiredCookie = new Cookie("JWT_TOKEN", "");
             expiredCookie.setPath("/");
-            expiredCookie.setMaxAge(0); // Eliminar cookie
+            expiredCookie.setMaxAge(0);
             response.addCookie(expiredCookie);
-
-            // Redirigir al usuario a la página de  index
-            response.sendRedirect("/");
-            return;
+            response.sendError(HttpStatus.UNAUTHORIZED.value(), "Token inválido");
         }
     }
 }

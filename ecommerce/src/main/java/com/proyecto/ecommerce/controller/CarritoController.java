@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -33,23 +34,37 @@ public class CarritoController {
     @PostMapping("/agregar")
     public String agregarAlCarrito(@RequestParam Integer idProducto,
                                    @RequestParam(defaultValue = "1") Integer cantidad,
-                                   HttpSession session) {
+                                   HttpSession session,
+                                   RedirectAttributes redirectAttributes) {
         Producto producto = productoService.obtenerProductoPorId(idProducto);
-
         List<CarritoItem> carrito = obtenerCarrito(session);
 
+        // Calcular la cantidad total deseada
+        int cantidadActual = carrito.stream()
+                .filter(item -> item.getProducto().getIdProducto().equals(idProducto))
+                .mapToInt(CarritoItem::getCantidad)
+                .sum();
+        int totalDeseado = cantidadActual + cantidad;
+
+        // Verificar si hay suficiente stock
+        if (producto.getStock() < totalDeseado) {
+            redirectAttributes.addFlashAttribute("error", "No hay suficiente stock disponible para este producto.");
+            return "redirect:/carrito";
+        }
+
+        // Si ya existe el producto en el carrito, se actualiza la cantidad
         Optional<CarritoItem> itemExistente = carrito.stream()
                 .filter(item -> item.getProducto().getIdProducto().equals(idProducto))
                 .findFirst();
-
         if (itemExistente.isPresent()) {
-            itemExistente.get().setCantidad(itemExistente.get().getCantidad() + cantidad);
+            itemExistente.get().setCantidad(totalDeseado);
         } else {
             carrito.add(new CarritoItem(producto, cantidad));
         }
 
         return "redirect:/carrito";
     }
+
 
     @PostMapping("/actualizar")
     public String actualizarCarrito(@RequestParam Integer idProducto,
@@ -73,15 +88,16 @@ public class CarritoController {
     }
 
     @PostMapping("/completar")
-    public String completarPedido(HttpSession session, Authentication authentication) {
+    public String completarPedido(HttpSession session, Authentication authentication, RedirectAttributes redirectAttributes) {
         List<CarritoItem> carrito = obtenerCarrito(session);
 
-        // Validar stock antes de procesar
-        boolean stockValido = carrito.stream()
-                .allMatch(item -> item.getProducto().getStock() >= item.getCantidad());
-
-        if (!stockValido) {
-            return "redirect:/carrito?error=stock";
+        // Validar stock antes de procesar:
+        for (CarritoItem item : carrito) {
+            if (item.getCantidad() > item.getProducto().getStock()) {
+                redirectAttributes.addFlashAttribute("error", "No hay suficiente stock para el producto: "
+                        + item.getProducto().getNombre());
+                return "redirect:/carrito";
+            }
         }
 
         // Crear PedidoRequest
@@ -89,26 +105,34 @@ public class CarritoController {
         pedidoRequest.setFecha(LocalDate.now());
         pedidoRequest.setEstado("PENDIENTE");
 
-        List<ProductoCantidadDTO> productos = carrito.stream()
-                .map(item -> new ProductoCantidadDTO(item.getProducto().getIdProducto(), item.getCantidad()))
-                .collect(Collectors.toList());
+        List<ProductoCantidadDTO> productos = new ArrayList<>();
+        double total = 0;
+        // Recorrer cada item para armar la lista y actualizar el stock
+        for (CarritoItem item : carrito) {
+            int cantidad = item.getCantidad();
+            Producto producto = item.getProducto();
 
+            // Acumular el total
+            total += producto.getPrecio() * cantidad;
+            // Agregar al DTO la cantidad solicitada
+            productos.add(new ProductoCantidadDTO(producto.getIdProducto(), cantidad));
+
+            // Actualizar el stock del producto
+            producto.setStock(producto.getStock() - cantidad);
+            productoService.actualizarProducto(producto.getIdProducto(), producto);
+        }
         pedidoRequest.setProductos(productos);
-
-        // Calcular total
-        double total = carrito.stream()
-                .mapToDouble(item -> item.getProducto().getPrecio() * item.getCantidad())
-                .sum();
         pedidoRequest.setTotal(total);
 
-        // Crear pedido
+        // Crear pedido (llamando a tu controlador de pedidos o servicio)
         pedidoController.crearPedido(pedidoRequest);
 
-        // Limpiar carrito
+        // Limpiar el carrito
         session.removeAttribute("carrito");
 
         return "redirect:/pedidos/mios";
     }
+
     // Nuevo método para visualizar el carrito (Mi Carrito)
     @GetMapping
     public String verCarrito(HttpSession session, Model model) {

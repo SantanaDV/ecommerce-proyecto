@@ -1,5 +1,6 @@
 package com.proyecto.ecommerce.service;
 
+import com.proyecto.ecommerce.dto.PedidoRequest;
 import com.proyecto.ecommerce.entity.Pedido;
 import com.proyecto.ecommerce.entity.Usuario;
 
@@ -96,6 +97,16 @@ public interface PedidoService {
 
 
     void eliminarProductosDePedido(Integer idPedido);
+
+
+    /*
+    *
+    * Mediante un pedido request y un Usuario crea un Pedido
+    *
+    * @param usuario usuario al cual hacemos el pedido
+    * @param pedidoRequest clase con los datos necesarios para hacer un request de pedido.
+    */
+    Pedido crearPedidoAdmin(PedidoRequest pedidoRequest, Usuario usuario);
 
 
 }

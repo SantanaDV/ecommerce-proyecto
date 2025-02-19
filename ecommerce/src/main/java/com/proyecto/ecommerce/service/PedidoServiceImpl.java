@@ -1,10 +1,14 @@
 package com.proyecto.ecommerce.service;
 
+import com.proyecto.ecommerce.dto.PedidoRequest;
+import com.proyecto.ecommerce.dto.ProductoCantidadDTO;
 import com.proyecto.ecommerce.entity.Pedido;
+import com.proyecto.ecommerce.entity.PedidoProducto;
+import com.proyecto.ecommerce.entity.Producto;
+import com.proyecto.ecommerce.entity.Usuario;
 import com.proyecto.ecommerce.exception.CustomException;
 import com.proyecto.ecommerce.repository.PedidoProductoRepository;
 import com.proyecto.ecommerce.repository.PedidoRepository;
-import com.proyecto.ecommerce.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +27,9 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Autowired
     private PedidoProductoRepository pedidoProductoRepository;
+
+    @Autowired
+    private ProductoService productoService;
 
 
     @Override
@@ -168,6 +175,60 @@ public class PedidoServiceImpl implements PedidoService {
 
         // Eliminamos los productos asociados al pedido
         pedidoRepository.deleteProductosByPedido(idPedido);
+    }
+
+    @Override
+    @Transactional
+    public Pedido crearPedidoAdmin(PedidoRequest pedidoRequest, Usuario usuario) {
+        // Validar datos básicos del pedido
+        if (pedidoRequest.getFecha() == null) {
+            throw new CustomException("La fecha del pedido es obligatoria.");
+        }
+        if (pedidoRequest.getTotal() == null || pedidoRequest.getTotal() < 0) {
+            throw new CustomException("El total del pedido no puede ser nulo ni negativo.");
+        }
+        if (pedidoRequest.getEstado() == null || pedidoRequest.getEstado().isBlank()) {
+            throw new CustomException("El estado del pedido no puede ser nulo ni vacío.");
+        }
+        if (pedidoRequest.getProductos() == null || pedidoRequest.getProductos().isEmpty()) {
+            throw new CustomException("Debe incluir al menos un producto en el pedido.");
+        }
+
+        // Crear el objeto Pedido
+        Pedido pedido = new Pedido();
+        pedido.setFecha(pedidoRequest.getFecha());
+        pedido.setTotal(pedidoRequest.getTotal());
+        pedido.setEstado(pedidoRequest.getEstado());
+        pedido.setUsuario(usuario);
+
+        // Guardar el pedido para obtener su ID
+        Pedido pedidoGuardado = pedidoRepository.save(pedido);
+
+        // Procesar cada producto del pedido
+        for (ProductoCantidadDTO pcDTO : pedidoRequest.getProductos()) {
+            // Obtener el producto
+            Producto producto = productoService.obtenerProductoPorId(pcDTO.getIdProducto());
+
+            // Validar stock disponible
+            if (producto.getStock() < pcDTO.getCantidad()) {
+                throw new CustomException("No hay suficiente stock para el producto: " + producto.getNombre());
+            }
+
+            // Actualizar el stock del producto
+            producto.setStock(producto.getStock() - pcDTO.getCantidad());
+            productoService.actualizarProducto(producto.getIdProducto(), producto);
+
+            // Crear la relación en la entidad intermedia (PedidoProducto)
+            PedidoProducto pedidoProducto = new PedidoProducto();
+            pedidoProducto.setPedido(pedidoGuardado);
+            pedidoProducto.setProducto(producto);
+            pedidoProducto.setCantidad(pcDTO.getCantidad());
+
+            // Guardar la relación en la base de datos
+            pedidoProductoRepository.save(pedidoProducto);
+        }
+
+        return pedidoGuardado;
     }
 
 }

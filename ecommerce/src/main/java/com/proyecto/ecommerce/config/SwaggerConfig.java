@@ -20,6 +20,7 @@ public class SwaggerConfig {
      *
      * Con este bean, Springdoc construye la documentación OpenAPI
      * que se mostrará en /swagger-ui.html
+     * Solo muestra las anotaciones @RestController que devuelven Json no las @Controller que devuelven vistas
      */
     @Bean
     public OpenAPI ecommerceOpenAPI() {
@@ -36,9 +37,6 @@ public class SwaggerConfig {
     }
 
     /**
-     * Si deseas agrupar endpoints por versión o por módulos,
-     * puedes usar GroupedOpenApi. Caso contrario, con un solo bean
-     * @Bean public OpenAPI ... es suficiente.
      *
      * Con este bean, se personalizan las rutas que se documentan,
      * y se asigna un nombre de grupo para diferenciarlas.

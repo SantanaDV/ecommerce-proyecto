@@ -134,6 +134,8 @@ public class UsuarioServiceImpl implements  UsuarioService{
         System.out.println("Datos nuevos: " + datosNuevos);
 
         // Actualizar campos básicos
+        // Agregamos esta línea para actualizar el username si se permite cambiarlo
+        existente.setUsername(datosNuevos.getUsername());
         existente.setNombre(datosNuevos.getNombre());
         existente.setApellido(datosNuevos.getApellido());
         existente.setCorreo(datosNuevos.getCorreo());
@@ -163,6 +165,7 @@ public class UsuarioServiceImpl implements  UsuarioService{
         System.out.println("Usuario actualizado: " + actualizado);
         return actualizado;
     }
+
 
     @Override
     public void eliminarUsuario(Integer idUsuario) {

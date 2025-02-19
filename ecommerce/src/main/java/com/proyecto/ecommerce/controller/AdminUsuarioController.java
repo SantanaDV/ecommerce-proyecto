@@ -1,5 +1,7 @@
 package com.proyecto.ecommerce.controller;
 
+import com.proyecto.ecommerce.dto.PedidoRequest;
+import com.proyecto.ecommerce.dto.ProductoCantidadDTO;
 import com.proyecto.ecommerce.entity.Pedido;
 import com.proyecto.ecommerce.entity.Producto;
 import com.proyecto.ecommerce.entity.Usuario;
@@ -8,13 +10,19 @@ import com.proyecto.ecommerce.service.ProductoService;
 import com.proyecto.ecommerce.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Controller
 @PreAuthorize("hasRole('ADMIN')")
@@ -151,7 +159,7 @@ public class AdminUsuarioController {
         return "redirect:/admin/productos";
     }
 
-// Lista todos los pedidos
+    // Lista todos los pedidos
     @GetMapping("/pedidos")
     public String listarPedidos(Model model) {
         List<Pedido> pedidos = pedidoService.listarPedidos();
@@ -159,14 +167,88 @@ public class AdminUsuarioController {
         return "admin/pedidos";  // Vista: src/main/resources/templates/admin/pedidos.html
     }
 
-    // Muestra el formulario para crear un nuevo pedido
+    /**
+     * Muestra el formulario para crear un nuevo pedido por parte del administrador.
+     * En este formulario se muestra la lista de productos disponibles y se permite
+     * ingresar la cantidad deseada para cada uno.
+     */
     @GetMapping("/pedidos/nuevo")
-    public String nuevoPedido(Model model) {
-        model.addAttribute("pedido", new Pedido());
-        List<Usuario> usuarios = usuarioService.listarUsuarios();
-        model.addAttribute("usuarios", usuarios);
-        model.addAttribute("actionUrl", "/admin/pedidos/crear"); // URL para creación
-        return "admin/form-pedido";  // Vista: templates/admin/form-pedido.html
+    public String nuevoPedidoAdmin(Model model) {
+        // Obtenemos la lista de productos disponibles
+        List<Producto> productos = productoService.listarProductos();
+        List<Usuario> usuarios = usuarioService.listarUsuarios(); // Agregamos la lista de usuarios
+
+        // Creamos un PedidoRequest y, por cada producto, inicializamos un ProductoCantidadDTO con cantidad 0.
+        PedidoRequest pedidoRequest = new PedidoRequest();
+        pedidoRequest.setFecha(LocalDate.now());
+        pedidoRequest.setEstado("PENDIENTE");
+        pedidoRequest.setProductos(
+                productos.stream()
+                        .map(prod -> new ProductoCantidadDTO(prod.getIdProducto(), 0))
+                        .collect(Collectors.toList())
+        );
+
+        // Creamos un mapa de productos, indexado por su id
+        Map<Integer, Producto> productosMap = productos.stream()
+                .collect(Collectors.toMap(Producto::getIdProducto, Function.identity()));
+
+        // Agregamos el PedidoRequest y la lista de productos al modelo para poder mostrarlos en la vista.
+        model.addAttribute("pedidoRequest", pedidoRequest);
+        model.addAttribute("productos", productos);
+        model.addAttribute("usuarios", usuarios); // ¡Importante para que el modelo cargue los usuarios!
+        model.addAttribute("productosMap", productosMap); // ¡Agregado el mapa de productos al modelo!
+        model.addAttribute("actionUrl", "/admin/pedidos/crear-admin");
+        return "admin/crear-pedido"; // Vista: templates/admin/crear-pedido.html
+    }
+
+    /**
+     * Procesa el formulario de creación de pedido realizado por el administrador.
+     * Se filtran los productos con cantidad > 0, se valida que exista stock suficiente,
+     * se calcula el total, se actualizan los stocks y se crea la relación PedidoProducto.
+     */
+    @PostMapping("/pedidos/crear-admin")
+    public String crearPedidoAdmin(@ModelAttribute("pedidoRequest") PedidoRequest pedidoRequest,
+                                   BindingResult result,
+                                   Model model) {
+        if (result.hasErrors()) {
+            model.addAttribute("productos", productoService.listarProductos());
+            return "admin/crear-pedido";
+        }
+
+        // Filtrar solo los productos con cantidad > 0
+        List<ProductoCantidadDTO> productosSolicitados = pedidoRequest.getProductos().stream()
+                .filter(pcd -> pcd.getCantidad() != null && pcd.getCantidad() > 0)
+                .collect(Collectors.toList());
+        if (productosSolicitados.isEmpty()) {
+            model.addAttribute("error", "Debes seleccionar al menos un producto con cantidad mayor que 0.");
+            model.addAttribute("productos", productoService.listarProductos());
+            return "admin/crear-pedido";
+        }
+        pedidoRequest.setProductos(productosSolicitados);
+
+        // Validar stock y calcular total
+        double total = 0;
+        for (ProductoCantidadDTO pcd : productosSolicitados) {
+            Producto producto = productoService.obtenerProductoPorId(pcd.getIdProducto());
+            if (producto.getStock() < pcd.getCantidad()) {
+                model.addAttribute("error", "No hay suficiente stock para el producto: " + producto.getNombre());
+                model.addAttribute("productos", productoService.listarProductos());
+                return "admin/crear-pedido";
+            }
+            total += producto.getPrecio() * pcd.getCantidad();
+        }
+        pedidoRequest.setTotal(total);
+
+        Usuario usuario = usuarioService.obtenerUsuarioPorId(pedidoRequest.getUsuarioId());
+
+        // Obtenemos al admin autenticado (quien crea el pedido)
+        String usernameAdmin = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario admin = usuarioService.obtenerUsuarioPorUsername(usernameAdmin);
+
+        // Llamamos al método de servicio que crea el pedido, actualiza el stock y guarda las relaciones
+        pedidoService.crearPedidoAdmin(pedidoRequest, admin);
+
+        return "redirect:/admin/pedidos";
     }
 
 
@@ -217,6 +299,9 @@ public class AdminUsuarioController {
         pedidoService.eliminarPedido(id);
         return "redirect:/admin/pedidos";
     }
+
+
+
 
 
 }
