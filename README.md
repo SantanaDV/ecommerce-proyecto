@@ -64,6 +64,6 @@ Los endpoints protegidos requieren enviar un token JWT en el header `Authorizati
 Authorization: Bearer <tu_token_jwt>
 ```
 ## Autor
-- **Tu nombre** - [GitHub](https://github.com/tu-usuario)
+- **SantanaDV** - [GitHub]([https://github.com/tu-usuario](https://github.com/SantanaDV))
 ## Licencia
 Este proyecto está licenciado bajo la Licencia MIT.
