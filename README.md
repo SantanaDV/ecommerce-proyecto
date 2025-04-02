@@ -2,9 +2,8 @@
 ## Descripción
 Este proyecto implementa una aplicación web de ecommerce usando Spring Boot, con
 autenticación JWT, gestión de usuarios, pedidos y productos.
+
 ## Tecnologías utilizadas
-## 🛠️ Tecnologías utilizadas
-## 🛠️ Tecnologías utilizadas
 
 ![Java](https://img.shields.io/badge/Java_17-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot_3.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
