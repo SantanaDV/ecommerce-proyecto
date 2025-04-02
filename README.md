@@ -1,15 +1,16 @@
 # Proyecto Ecommerce Spring Boot
 ## Descripción
-Este proyecto implementa una aplicación web de comercio electrónico usando Spring Boot, con
+Este proyecto implementa una aplicación web de ecommerce usando Spring Boot, con
 autenticación JWT, gestión de usuarios, pedidos y productos.
 ## Tecnologías utilizadas
-- Java 17
-- Spring Boot 3.x
-- Spring Security (JWT)
-- Thymeleaf (para vistas HTML)
-- MySQL
-- Swagger (para documentación API)
-- Lombok
+## 🛠️ Tecnologías utilizadas
+-![Java](https://img.shields.io/badge/Java_17-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white) Java 17
+-![Spring Boot](https://img.shields.io/badge/Spring_Boot_3.x-6DB33F?style=for-the-badge&logo=springboot&logoColor=white) Spring Boot 3.x
+-![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white) Spring Security
+-![Thymeleaf](https://img.shields.io/badge/Thymeleaf-005F0F?style=for-the-badge&logo=thymeleaf&logoColor=white) Thymeleaf (para vistas HTML)
+-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white) MySQL
+-![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black) Swagger (para documentación API)
+-![Lombok](https://img.shields.io/badge/Lombok-E74430?style=for-the-badge&logo=lombok&logoColor=white) Lombok
 ## Características principales
 - Autenticación y autorización con JWT.
 - Gestión de usuarios con roles ADMIN y USER.
